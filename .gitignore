@@ -1,0 +1,61 @@
+# Environment variables
+.env
+.env.*
+*.env
+
+# Secrets / keys
+*.key
+*.pem
+*.secret
+nsec*
+keys/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local config
+config.local.*
+local.settings.*
+
+# Databases / memory stores
+*.db
+*.sqlite
+*.sqlite3
+
+# Model caches
+models/
+cache/
+.embeddings/
+
+# Ollama runtime artifacts (optional depending on setup)
+ollama-data/
+
+# Build artifacts
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Dumclaw Terminal</h2>
+
+<input id="cmd" style="width:300px;">
+<button onclick="send()">send</button>
+
+<pre id="log"></pre>
+
+<script>
+
+async function send(){
+
+let msg = document.getElementById("cmd").value
+
+let r = await fetch("/chat",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:msg})
+})
+
+let data = await r.json()
+
+document.getElementById("log").textContent +=
+"\n> "+msg+"\n"+data.reply+"\n"
+
+}
+
+</script>
+
+</body>
+</html>
