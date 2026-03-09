@@ -1,24 +1,18 @@
 import requests
-import json
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 TOOL_PROMPT = """
-You convert commands into JSON tool calls.
+Decide which tool is needed.
 
-Available tools:
-get_weather()
+Tools:
+weather
+none
 
-Rules:
-If the user asks about weather or temperature return ONLY:
+Reply with ONE word only.
 
-{"tool":"get_weather","args":{}}
-
-If the user is NOT requesting a tool return ONLY:
-
-{"tool":"none"}
-
-Do not add text.
+weather
+none
 """
 
 GERALD_PROMPT = """
@@ -33,6 +27,7 @@ Rules:
 • 1-3 sentences
 • blunt commentary
 • enjoys mocking human behavior
+• always include tool results in your commentary if provided
 """
 
 def call_ollama(prompt):
@@ -54,46 +49,19 @@ def call_ollama(prompt):
     return r.json()["response"].strip()
 
 
-def get_weather():
-    # simple factual output works best for LLMs
-    return "10°C, clear skies"
+def decide_tool(user_prompt):
+
+    decision = call_ollama(TOOL_PROMPT + "\nUser: " + user_prompt)
+
+    return decision.strip().lower()
 
 
-def ask_llm(user_prompt):
+def gerald_reply(prompt):
 
-    # STEP 1: check if a tool is needed
-    tool_check = call_ollama(TOOL_PROMPT + "\nUser: " + user_prompt)
-
-    try:
-        tool_json = json.loads(tool_check)
-    except Exception:
-        tool_json = {"tool": "none"}
-
-    tool_name = tool_json.get("tool", "none")
-
-    # STEP 2: run tool
-    if tool_name == "get_weather":
-
-        weather = get_weather()
-
-        final_prompt = f"""
-{GERALD_PROMPT}
-
-Gerald checked the weather earlier. It's {weather}.
-He is still mildly annoyed about knowing this.
-
-User: {user_prompt}
-
-Gerald:
-"""
-
-        return call_ollama(final_prompt)
-
-    # STEP 3: normal reply
     final_prompt = f"""
 {GERALD_PROMPT}
 
-User: {user_prompt}
+{prompt}
 
 Gerald:
 """

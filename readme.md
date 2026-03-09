@@ -1,382 +1,203 @@
 # Dumclaw
 
-**Dumclaw** is a **local-first AI node** designed to run language models on **any hardware**, from old laptops to modern AI servers.
+**Dumclaw** is a lightweight framework for running autonomous agents on decentralized infrastructure.
 
-The system is built so it can start small and **grow over time** without changing its architecture or identity.
+It is designed to operate on small hardware, communicate through the Nostr network, and execute real-world actions through modular tools.
 
-A node may begin on slow hardware running a small model and later migrate to better machines with larger models — while remaining the **same agent**.
+The project explores a simple idea:
 
-Dumclaw prioritizes:
+> An agent does not need to be intelligent if it has the right tools.
 
-* 🔒 Privacy
-* 🧩 Modularity
-* ⚙️ User control
-* 🖥 Hardware independence
-* 🌐 Decentralized AI infrastructure
-
-The goal is to make **self-hosted AI practical for anyone**.
-
----
-
-# Core Principles
-
-## Runs on Any Hardware
-
-Dumclaw is designed to operate on **very modest hardware**.
-
-Possible hosts include:
-
-* old laptops
-* home servers
-* mini PCs
-* SBC devices
-* CPU-only machines
-
-Example minimal model:
-
-```
-granite4:1b
-```
-
-Performance may be slow, but the system remains **fully functional**.
-
-Old hardware becomes useful again.
-
----
-
-## Upgradeable Architecture
-
-A Dumclaw node is designed to **evolve over time**.
-
-Example lifecycle:
-
-```
-old hardware
-↓
-small model
-↓
-basic memory
-↓
-hardware upgrade
-↓
-larger models
-↓
-persistent memory
-```
-
-The system supports controlled upgrades through agent commands.
-
-Example concept:
-
-```
-upgrade
-```
-
-If hardware capacity and model context allow it, the node can enable:
-
-* larger models
-* improved embeddings
-* persistent memory
-* additional tools
-
-The **node identity remains the same**.
-
----
-
-# Architecture
-
-```
-Dumclaw Node
-│
-├─ Identity
-│  ├─ npub (public identity)
-│  └─ nsec (private key)
-│
-├─ Ollama Runtime
-│  ├─ granite4:1b
-│  └─ embedding model
-│
-├─ Gerald Agent
-│  ├─ tools
-│  ├─ memory
-│  └─ personality
-│
-├─ Relay Layer
-│  └─ strfry
-│
-└─ Interfaces
-   ├─ nostr DM
-   ├─ local web UI
-   └─ API
-```
-
-Each component is **independent and replaceable**.
-
----
-
-# Node Identity
-
-Every Dumclaw node has its own **Nostr identity**.
-
-This consists of a public/private keypair
-
-The `npub` acts as the **public address of the node**.
-
-The identity is used for:
-
-* publishing events
-* receiving commands
-* verifying permissions
-* building persistent agent history
-
-The private key (`nsec`) **never leaves the machine**.
-
----
-
-# Identity Persistence
-
-Node identity remains constant even if hardware changes.
-
-Example:
-
-```
-old laptop
-↓
-migration
-↓
-home server
-↓
-GPU machine
-```
-
-The node continues operating under the **same `npub` identity**.
-
-The agent evolves but remains **the same entity**.
-
----
-
-# Ollama Runtime
-
-Dumclaw recomends **Ollama** as the model runtime layer.
-
-Ollama provides:
-
-* model loading
-* inference
-* embeddings
-* HTTP interface
-* model management
-
-Start the runtime:
-
-```
-ollama serve
-```
-Dumclaw should provide a drop down menu of options at setup
-
-Ollama effectively acts as a **local AI server**.
-
----
-
-# Memory System
-
-Dumclaw may **text embeddings** to build searchable memory.
-or sqel db list of previous prompts and answers.
-
-Typical uses:
-
-* conversation recall
-* document search
-* knowledge storage
-* contextual retrieval
-
-Persistent memory can be enabled once:
-
-* hardware capacity allows it
-* model context is sufficient
-* storage is available
-
----
-
-# Security Model
-
-Security is a **core design requirement**.
-
-Dumclaw intentionally isolates critical components.
-
----
-
-## LLM Isolation
-
-The LLM runtime is **never exposed to the network**.
-
-Only local components may access it.
-
-This prevents:
-
-* remote prompt injection
-* external API abuse
-* model exploitation
-
----
-
-## Relay Isolation
-
-The relay acts as the **external network boundary**.
-
-Incoming events are filtered **before reaching the agent**.
-
-Example flow:
-
-```
-nostr network
-↓
-relay filters
-↓
-approved events
-↓
-agent
-```
-
----
-
-## Command Whitelisting
-
-Commands are restricted to approved identities.
-
-Example:
-
-```
-incoming events
-↓
-relay filtering
-↓
-whitelisted pubkeys
-↓
-agent command handler
-```
-
-Only authorized users can control the node.
-
-The bot itself may **publish events freely**.
-
----
-
-# Network Exposure
-
-The following components are **never public**:
-
-* LLM runtime
-* embeddings system
-* internal tools
-* memory store
-* agent internals
-
-Only controlled interfaces may interact with the node.
-
----
-
-# Node Lifecycle
-
-A typical Dumclaw node evolves through stages.
-
-### Stage 1 — Bootstrap
-
-```
-install dumclaw
-↓
-generate node identity
-↓
-start relay
-↓
-start ollama
-↓
-run small model
-```
-
----
-
-### Stage 2 — Functional Agent
-
-```
-enable tools
-↓
-enable embeddings
-↓
-basic memory
-↓
-nostr interaction
-```
-
----
-
-### Stage 3 — Hardware Upgrade
-
-```
-migrate node
-↓
-install larger models
-↓
-increase context
-↓
-enable persistent memory
-```
-
-The **node identity remains unchanged**.
-
----
-
-### Stage 4 — Mature Node
-
-```
-persistent memory
-tool ecosystem
-multiple interfaces
-networked AI agents
-```
-
----
-
-# Example Use Cases
-
-Dumclaw nodes can power:
-
-* personal AI assistants
-* private research tools
-* document search systems
-* Nostr AI bots
-* offline knowledge bases
-* home automation agents
-
-All without cloud AI.
+Instead of relying on large centralized AI services, Dumclaw focuses on building the **infrastructure layer** that allows agents to exist independently of any single model provider.
 
 ---
 
 # Vision
 
-Dumclaw explores a different future for AI.
+Modern AI systems are tightly coupled to centralized APIs and large compute providers.
 
-Instead of centralized AI:
+Dumclaw explores an alternative architecture built around open protocols and replaceable intelligence.
+
+Core principles:
+
+* **Decentralized identity**
+* **Local compute**
+* **Tool-driven capability**
+* **Modular intelligence**
+
+The intelligence layer can evolve over time, but the agent's identity, tools, and memory remain persistent.
+
+Protocols like Nostr enable agents to exist as independent network participants rather than application features.
+
+Payments and economic interactions can eventually be enabled through systems like Lightning Network or Cashu.
+
+---
+
+# Current MVP
+
+The current version focuses on a minimal working agent.
+
+The agent, **Gerald**, demonstrates a simple autonomous workflow.
+
+1. Gerald listens for incoming Nostr messages.
+2. Messages from a whitelist are interpreted by a small language model.
+3. The model selects a tool.
+4. The tool performs the action.
+5. Results can be published back to Nostr.
+
+Example interaction:
+
+User sends DM:
 
 ```
-cloud providers
-↓
-users
+gerald post todays weather
 ```
 
-Dumclaw builds **user-owned AI infrastructure**.
+Agent workflow:
 
 ```
-local nodes
-↓
-private AI agents
-↓
-distributed networks
+receive dm
+→ interpret request
+→ call weather tool
+→ publish nostr note
 ```
 
-Any computer can participate.
+Result:
 
-Old hardware becomes useful again.
+```
+another morning another request for weather...
+apparently humans require umbrellas again
+```
 
-Privacy becomes the default.
+This demonstrates:
+
+* decentralized messaging
+* tool-driven actions
+* autonomous publishing
+* persistent identity
+
+---
+
+# Architecture
+
+Dumclaw is intentionally simple.
+
+```
+Nostr Relays
+      │
+Event Filter (Whitelist)
+      │
+   Gerald Agent
+      │
+ Language Model
+      │
+   Tool System
+      │
+  Workspace
+```
+
+### Components
+
+**Agent**
+
+The agent interprets instructions and decides which tools to execute.
+
+**Tools**
+
+Tools perform deterministic actions such as:
+
+* publishing Nostr notes
+* sending direct messages
+* interacting with local files
+* calling external services
+
+**Workspace**
+
+A persistent filesystem where the agent can store artifacts, scripts, and memory.
+
+**Model**
+
+The language model is replaceable and can scale with available hardware.
+
+Small models can perform routing and interpretation, while larger models can provide deeper reasoning.
+
+---
+
+# Why Build This?
+
+Most AI agent frameworks assume access to powerful models hosted by centralized providers.
+
+Dumclaw takes the opposite approach:
+
+Start with minimal hardware and minimal intelligence, then grow capabilities through tools and modular upgrades.
+
+This allows the same agent identity to persist as compute improves.
+
+A node running a small model today could later upgrade to a larger model without redesigning the system.
+
+---
+
+# Design Goals
+
+* Run on modest hardware
+* Operate over decentralized protocols
+* Remain model-agnostic
+* Allow tools to expand capabilities
+* Preserve persistent identity
+
+The long-term goal is to enable **sovereign software agents** that can operate independently across open networks.
+
+---
+
+# Future Directions
+
+Planned capabilities include:
+
+* skill marketplace
+* encrypted tool interactions
+* payment-enabled agents
+* distributed compute delegation
+* long-term agent memory
+* dynamic tool installation
+
+As models improve, the same agent infrastructure can support increasingly capable systems.
+
+---
+
+# Gerald
+
+Gerald is the first Dumclaw agent.
+
+He is intentionally slow, grumpy, and somewhat reluctant to help humans.
+
+His job is simple:
+
+Read messages, interpret requests, and execute tools.
+
+---
+
+# Status
+
+Dumclaw is currently an early prototype focused on proving the architecture.
+
+The goal of the MVP is to demonstrate that a minimal autonomous agent can:
+
+* receive instructions through Nostr
+* interpret requests locally
+* execute real actions through tools
+* publish results back to the network
+
+---
+
+# Contributing
+
+The system is intentionally modular.
+
+Future contributors can expand Dumclaw by adding new tools, skills, and execution environments.
+
+---
+
+# License
+
+Open source.
 

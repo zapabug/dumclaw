@@ -58,3 +58,6 @@ def send_dm(target_pubkey, text):
     relay_manager.publish_event(event)
 
     print("DM sent")
+
+from llm import decide_tool, gerald_reply
+from tools import get_weather
