@@ -1,37 +1,28 @@
-import os
 import time
-from dotenv import load_dotenv
 
-from pynostr.key import PrivateKey
 from pynostr.relay_manager import RelayManager
 from pynostr.event import Event
 from pynostr.encrypted_dm import EncryptedDirectMessage
 
-load_dotenv()
-
-private_key = PrivateKey.from_nsec(os.getenv("NOSTR_SECRET"))
-public_key = private_key.public_key.hex()
+from config import PRIVATE_KEY, PUBLIC_KEY
 
 relay_manager = RelayManager()
 
-# General read/write relays
 GENERAL_RELAYS = [
     "wss://relay.damus.io",
     "wss://relay.primal.net",
     "wss://nos.lol"
 ]
 
-# Relay list aggregator
 OUTBOX_RELAYS = [
     "wss://purplepag.es"
 ]
 
-# DM relays
 DM_RELAYS = [
     "wss://nip17.com"
 ]
 
-ALL_RELAYS = GENERAL_RELAYS + PAID_RELAYS + OUTBOX_RELAYS + DM_RELAYS
+ALL_RELAYS = GENERAL_RELAYS + OUTBOX_RELAYS + DM_RELAYS
 
 for relay in ALL_RELAYS:
     relay_manager.add_relay(relay)
@@ -45,11 +36,11 @@ def send_note(text):
 
     event = Event(
         content=text,
-        public_key=public_key,
+        public_key=PUBLIC_KEY,
         kind=1
     )
 
-    private_key.sign_event(event)
+    PRIVATE_KEY.sign_event(event)
     relay_manager.publish_event(event)
 
     print("Published:", text)
@@ -62,7 +53,7 @@ def send_dm(target_pubkey, text):
         cleartext_content=text
     )
 
-    event = dm.to_event(private_key)
+    event = dm.to_event(PRIVATE_KEY)
 
     relay_manager.publish_event(event)
 

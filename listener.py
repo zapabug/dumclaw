@@ -1,15 +1,15 @@
-import os
 import time
-from dotenv import load_dotenv
-from pynostr.key import PrivateKey
+
 from pynostr.relay_manager import RelayManager
 from pynostr.filters import Filters
 from pynostr.encrypted_dm import EncryptedDirectMessage
 
-load_dotenv()
+from config import PRIVATE_KEY, PUBLIC_KEY
+from llm import ask_llm
+from nostr_client import send_dm
 
-private_key = PrivateKey.from_nsec(os.getenv("NOSTR_SECRET"))
-public_key = private_key.public_key.hex()
+
+print("Gerald pubkey:", PUBLIC_KEY)
 
 relay_manager = RelayManager()
 
@@ -22,12 +22,16 @@ relay_manager.open_connections()
 
 time.sleep(2)
 
-subscription = Filters({
-    "kinds": [4, 44, 1059],
-    "#p": [public_key]
-})
+subscription = Filters([
+    {
+        "kinds": [4],
+        "#p": [PUBLIC_KEY]
+    }
+])
 
 relay_manager.add_subscription("dm-listener", subscription)
+
+print("Subscription started")
 
 
 def start_listener():
@@ -43,16 +47,19 @@ def start_listener():
             event_msg = relay_manager.message_pool.get_event()
             event = event_msg.event
 
-            if event.pubkey == public_key:
+            print("EVENT RECEIVED:", event.kind, event.pubkey)
+
+            if event.pubkey == PUBLIC_KEY:
                 continue
 
             try:
 
                 dm = EncryptedDirectMessage.from_event(event)
-                message = dm.decrypt(private_key)
+                message = dm.decrypt(PRIVATE_KEY)
 
                 print("DM received:", message)
-                reply = ask_llm(message, GERALD_PROMPT)
+
+                reply = ask_llm(message)
 
                 print("Gerald reply:", reply)
 
@@ -63,3 +70,7 @@ def start_listener():
                 print("DM decrypt failed:", e)
 
         time.sleep(1)
+
+
+if __name__ == "__main__":
+    start_listener()

@@ -118,12 +118,7 @@ Each component is **independent and replaceable**.
 
 Every Dumclaw node has its own **Nostr identity**.
 
-This consists of a keypair:
-
-```
-npub  → public identity
-nsec  → private key
-```
+This consists of a public/private keypair
 
 The `npub` acts as the **public address of the node**.
 
@@ -162,7 +157,7 @@ The agent evolves but remains **the same entity**.
 
 # Ollama Runtime
 
-Dumclaw uses **Ollama** as the model runtime layer.
+Dumclaw recomends **Ollama** as the model runtime layer.
 
 Ollama provides:
 
@@ -177,12 +172,7 @@ Start the runtime:
 ```
 ollama serve
 ```
-
-Run the reasoning model:
-
-```
-ollama run granite4:1b
-```
+Dumclaw should provide a drop down menu of options at setup
 
 Ollama effectively acts as a **local AI server**.
 
@@ -190,7 +180,8 @@ Ollama effectively acts as a **local AI server**.
 
 # Memory System
 
-Dumclaw uses **text embeddings** to build searchable memory.
+Dumclaw may **text embeddings** to build searchable memory.
+or sqel db list of previous prompts and answers.
 
 Typical uses:
 

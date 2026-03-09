@@ -1,15 +1,8 @@
-from pynostr.key import PrivateKey
+from config import PRIVATE_KEY, PUBLIC_KEY
 from pynostr.relay_manager import RelayManager
 from pynostr.event import Event
 from pynostr.encrypted_dm import EncryptedDirectMessage
 import time
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-private_key = PrivateKey.from_nsec(os.getenv("NOSTR_SECRET"))
-public_key = private_key.public_key
 
 relay_manager = RelayManager()
 relay_manager.add_relay("ws://localhost:7777")
@@ -22,12 +15,13 @@ def send_note(text):
 
     event = Event(
         content=text,
-        public_key=public_key.hex()
+        public_key=PUBLIC_KEY
     )
 
-    private_key.sign_event(event)
+    PRIVATE_KEY.sign_event(event)
 
     relay_manager.publish_event(event)
+
 
 def send_dm(recipient_pubkey, text):
 
@@ -36,8 +30,8 @@ def send_dm(recipient_pubkey, text):
         cleartext_content=text
     )
 
-    event = dm.to_event(private_key)
+    event = dm.to_event(PRIVATE_KEY)
 
     relay_manager.publish_event(event)
-# testing
-send_note("Gerald boot sequence complete. Regrettably.")
+
+
