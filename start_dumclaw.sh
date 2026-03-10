@@ -80,8 +80,7 @@ echo "Starting Gerald listener..."
 
 cd $DUMCLAW_DIR || exit
 
-python listener.py \
-> logs/listener.log 2>&1 &
+python -u listener.py > logs/listener.log 2>&1 &
 
 ################################
 # Start Gerald server

@@ -26,11 +26,11 @@ subscription = Filters([
 for relay in LISTEN_RELAYS:
     relay_manager.add_relay(relay)
 
-relay_manager.add_subscription("dm-listener", subscription)
-
 relay_manager.open_connections()
 
 time.sleep(2)
+
+relay_manager.add_subscription("dm-listener", subscription)
 
 print("Subscription started")
 
