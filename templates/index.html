@@ -9,6 +9,9 @@
 
 <pre id="log"></pre>
 
+<h3>Relay Status</h3>
+<pre id="relays"></pre>
+
 <h3>Bot Monitor</h3>
 <pre id="events"></pre>
 
@@ -17,6 +20,7 @@
 const cmd = document.getElementById("cmd")
 const log = document.getElementById("log")
 const events = document.getElementById("events")
+const relays = document.getElementById("relays")
 
 async function send(){
 
@@ -38,13 +42,16 @@ async function send(){
         log.scrollTop = log.scrollHeight
 
     }catch(e){
+
         log.textContent += "\n[error] "+e+"\n"
+
     }
 
     cmd.value = ""
     cmd.focus()
 
 }
+
 
 async function updateEvents(){
 
@@ -56,18 +63,60 @@ async function updateEvents(){
         events.textContent = JSON.stringify(data,null,2)
 
     }catch(e){
+
         events.textContent = "event fetch error"
+
     }
 
 }
 
-setInterval(updateEvents,1000)
+
+async function updateRelays(){
+
+    try{
+
+        let r = await fetch("/relays")
+        let data = await r.json()
+
+        let out = ""
+
+        for(let k in data){
+
+            if(data[k] === "connected"){
+                out += "✔ " + k + "\n"
+            }else{
+                out += "✖ " + k + "\n"
+            }
+
+        }
+
+        relays.textContent = out
+
+    }catch(e){
+
+        relays.textContent = "relay status error"
+
+    }
+
+}
+
+
+setInterval(()=>{
+
+    updateEvents()
+    updateRelays()
+
+},1000)
+
 
 cmd.addEventListener("keydown", function(e){
+
     if(e.key === "Enter"){
         send()
     }
+
 })
+
 
 cmd.focus()
 

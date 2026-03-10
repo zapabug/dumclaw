@@ -48,29 +48,6 @@ cd $STRFRY_DIR || exit
 
 sleep 3
 
-################################
-# Start relay sync workers
-################################
-
-echo "Starting relay sync workers..."
-
-./strfry sync wss://relay.damus.io \
---filter "{\"kinds\":[4,44,1059],\"#p\":[\"$PUBKEY\"]}" \
-> $DUMCLAW_DIR/logs/sync_damus.log 2>&1 &
-
-./strfry sync wss://relay.primal.net \
---filter "{\"kinds\":[4,44,1059],\"#p\":[\"$PUBKEY\"]}" \
-> $DUMCLAW_DIR/logs/sync_primal.log 2>&1 &
-
-./strfry sync wss://nos.lol \
---filter "{\"kinds\":[4,44,1059],\"#p\":[\"$PUBKEY\"]}" \
-> $DUMCLAW_DIR/logs/sync_nos.log 2>&1 &
-
-./strfry sync wss://nip17.com \
---filter "{\"kinds\":[4,44,1059],\"#p\":[\"$PUBKEY\"]}" \
-> $DUMCLAW_DIR/logs/sync_nip17.log 2>&1 &
-
-sleep 3
 
 ################################
 # Start Gerald listener
@@ -81,6 +58,31 @@ echo "Starting Gerald listener..."
 cd $DUMCLAW_DIR || exit
 
 python3 -u listener.py > logs/listener.log 2>&1 &
+
+################################
+# Start relay sync workers
+################################
+
+echo "Starting relay sync workers..."
+
+./strfry sync wss://relay.damus.io \
+--filter "{\"kinds\":[4,1059],\"#p\":[\"$PUBKEY\"]}" \
+> $DUMCLAW_DIR/logs/sync_damus.log 2>&1 &
+
+./strfry sync wss://relay.primal.net \
+--filter "{\"kinds\":[4,1059],\"#p\":[\"$PUBKEY\"]}" \
+> $DUMCLAW_DIR/logs/sync_primal.log 2>&1 &
+
+./strfry sync wss://nos.lol \
+--filter "{\"kinds\":[4,1059],\"#p\":[\"$PUBKEY\"]}" \
+> $DUMCLAW_DIR/logs/sync_nos.log 2>&1 &
+
+./strfry sync wss://nip17.com \
+--filter "{\"kinds\":[4,1059],\"#p\":[\"$PUBKEY\"]}" \
+> $DUMCLAW_DIR/logs/sync_nip17.log 2>&1 &
+
+sleep 3
+
 
 ################################
 # Start Gerald server
