@@ -1,4 +1,5 @@
 import requests
+from tools import get_weather
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
@@ -29,6 +30,7 @@ Rules:
 • enjoys mocking human behavior
 • always include tool results in your commentary if provided
 """
+
 
 def call_ollama(prompt):
 
@@ -67,3 +69,22 @@ Gerald:
 """
 
     return call_ollama(final_prompt)
+
+
+def ask_llm(user_prompt):
+
+    decision = decide_tool(user_prompt)
+
+    if decision == "weather":
+
+        result = get_weather()
+
+        enriched = f"""
+The weather right now is {result}.
+
+User asked: {user_prompt}
+"""
+
+        return gerald_reply(enriched)
+
+    return gerald_reply(f"User: {user_prompt}")

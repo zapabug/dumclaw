@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html>
-<body>
+<body style="font-family: monospace; background:#111; color:#0f0;">
 
 <h2>Dumclaw Terminal</h2>
 
-<input id="cmd" style="width:300px;">
+<input id="cmd" style="width:400px;">
 <button onclick="send()">send</button>
 
 <pre id="log"></pre>
+
+<h3>Bot Monitor</h3>
+<pre id="events"></pre>
 
 <script>
 
@@ -26,9 +29,29 @@ let data = await r.json()
 document.getElementById("log").textContent +=
 "\n> "+msg+"\n"+data.reply+"\n"
 
+document.getElementById("cmd").value = ""
+
 }
 
+
+async function updateEvents(){
+
+let r = await fetch("/events")
+let data = await r.json()
+
+document.getElementById("events").textContent =
+JSON.stringify(data,null,2)
+
+}
+
+setInterval(updateEvents,1000)
+
 </script>
+document.getElementById("cmd").addEventListener("keypress", function(e){
+if(e.key === "Enter"){
+send()
+}
+})
 
 </body>
 </html>

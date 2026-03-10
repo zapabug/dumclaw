@@ -7,6 +7,7 @@ from pynostr.encrypted_dm import EncryptedDirectMessage
 from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
 from nostr_client import send_dm
+from events import log_event
 
 
 print("Gerald pubkey:", PUBLIC_KEY)
@@ -15,13 +16,6 @@ relay_manager = RelayManager()
 
 LISTEN_RELAYS = ["ws://127.0.0.1:7777"]
 
-for relay in LISTEN_RELAYS:
-    relay_manager.add_relay(relay)
-
-relay_manager.open_connections()
-
-time.sleep(2)
-
 subscription = Filters([
     {
         "kinds": [4],
@@ -29,7 +23,14 @@ subscription = Filters([
     }
 ])
 
+for relay in LISTEN_RELAYS:
+    relay_manager.add_relay(relay)
+
 relay_manager.add_subscription("dm-listener", subscription)
+
+relay_manager.open_connections()
+
+time.sleep(2)
 
 print("Subscription started")
 
@@ -65,11 +66,13 @@ def start_listener():
 
                 send_dm(event.pubkey, reply)
 
+                print("DM sent")
+
             except Exception as e:
 
                 print("DM decrypt failed:", e)
 
-        time.sleep(1)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
