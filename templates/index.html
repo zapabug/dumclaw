@@ -14,44 +14,64 @@
 
 <script>
 
+const cmd = document.getElementById("cmd")
+const log = document.getElementById("log")
+const events = document.getElementById("events")
+
 async function send(){
 
-let msg = document.getElementById("cmd").value
+    let msg = cmd.value.trim()
+    if(!msg) return
 
-let r = await fetch("/chat",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({message:msg})
-})
+    try{
 
-let data = await r.json()
+        let r = await fetch("/chat",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({message:msg})
+        })
 
-document.getElementById("log").textContent +=
-"\n> "+msg+"\n"+data.reply+"\n"
+        let data = await r.json()
 
-document.getElementById("cmd").value = ""
+        log.textContent += "\n> " + msg + "\n" + data.reply + "\n"
+
+        log.scrollTop = log.scrollHeight
+
+    }catch(e){
+        log.textContent += "\n[error] "+e+"\n"
+    }
+
+    cmd.value = ""
+    cmd.focus()
 
 }
 
-
 async function updateEvents(){
 
-let r = await fetch("/events")
-let data = await r.json()
+    try{
 
-document.getElementById("events").textContent =
-JSON.stringify(data,null,2)
+        let r = await fetch("/events")
+        let data = await r.json()
+
+        events.textContent = JSON.stringify(data,null,2)
+
+    }catch(e){
+        events.textContent = "event fetch error"
+    }
 
 }
 
 setInterval(updateEvents,1000)
 
-</script>
-document.getElementById("cmd").addEventListener("keypress", function(e){
-if(e.key === "Enter"){
-send()
-}
+cmd.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
+        send()
+    }
 })
+
+cmd.focus()
+
+</script>
 
 </body>
 </html>
