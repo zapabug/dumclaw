@@ -1,11 +1,12 @@
 import json
+import os
 import websocket
 import time
 import sqlite3
 import uuid
 from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
-from nostr_client import send_dm
+from nostr_client import send_dm, send_note, send_note_tagged
 from pynostr.encrypted_dm import EncryptedDirectMessage
 from nip44 import get_conversation_key, decrypt as nip44_decrypt
 
@@ -17,6 +18,9 @@ ALLOWED_PUBKEYS = {
     "d83b5ef189df7e884627294b752969547814c3cfe38995cf207c040e03bbe7a4",
     "699af55b12ba03620cda782766ea5555b78f2b94ff36f1855c69cd4126f3b545",
 }
+
+# Path to the contacts JSON file (populated by fetch_contacts.py)
+CONTACTS_FILE = "contacts.json"
 
 # -------------------
 # Seen events storage
@@ -40,6 +44,37 @@ def already_seen(event_id):
 def mark_seen(event_id):
     cur.execute("INSERT OR IGNORE INTO seen VALUES (?)", (event_id,))
     conn.commit()
+
+
+# -------------------
+# Contacts lookup
+# -------------------
+
+def load_contacts():
+    """Load the contacts JSON file. Returns dict of {name: pubkey}."""
+    if not os.path.exists(CONTACTS_FILE):
+        print(f"No contacts file found at {CONTACTS_FILE}")
+        return {}
+    try:
+        with open(CONTACTS_FILE, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Failed to load contacts: {e}")
+        return {}
+
+
+def lookup_contact(name):
+    """Look up a contact by name (case-insensitive). Returns pubkey or None."""
+    contacts = load_contacts()
+    name_lower = name.lower().strip()
+    for contact_name, pubkey in contacts.items():
+        if contact_name.lower() == name_lower:
+            return pubkey
+    # Partial match fallback
+    for contact_name, pubkey in contacts.items():
+        if name_lower in contact_name.lower():
+            return pubkey
+    return None
 
 
 # -------------------
@@ -194,13 +229,52 @@ def handle_nip17(event):
         print(f"NIP-17 unwrap failed: {e}")
 
 
+# -------------------
+# Command routing
+# -------------------
+
 def process_command(sender_pubkey, plaintext):
-    """Route a decrypted message through the LLM and reply."""
+    """
+    Route a decrypted message through the LLM and execute the decided action.
+
+    Actions:
+      reply         — send DM back to sender
+      note          — publish kind 1 note + send "note sent" DM to sender
+      weather_reply — fetch weather, reply via DM
+      dm_contact    — send DM to a named contact + confirm to sender
+    """
     try:
-        reply = ask_llm(plaintext)
-        print(f"Gerald reply: {reply}")
-        send_dm(sender_pubkey, reply)
-        print("Reply sent")
+        action, reply_text, extra = ask_llm(plaintext)
+        print(f"Action: {action} | Gerald: {reply_text}")
+
+        if action == "reply" or action == "weather_reply":
+            # Simple DM reply
+            send_dm(sender_pubkey, reply_text)
+            print("DM reply sent")
+
+        elif action == "note":
+            # Publish kind 1 note, then confirm via DM
+            send_note(reply_text)
+            send_dm(sender_pubkey, f"note sent: {reply_text[:80]}...")
+            print("Note published + confirmation DM sent")
+
+        elif action == "dm_contact":
+            contact_name = extra.get("contact", "")
+            contact_pubkey = lookup_contact(contact_name)
+
+            if contact_pubkey:
+                send_dm(contact_pubkey, reply_text)
+                send_dm(sender_pubkey, f"DM sent to {contact_name}")
+                print(f"DM sent to contact '{contact_name}' ({contact_pubkey[:16]}...)")
+            else:
+                send_dm(sender_pubkey, f"I don't know anyone called '{contact_name}'. Check contacts.json.")
+                print(f"Contact '{contact_name}' not found")
+
+        else:
+            # Fallback: DM reply
+            send_dm(sender_pubkey, reply_text)
+            print("Fallback DM reply sent")
+
     except Exception as e:
         print(f"Command processing failed: {e}")
 
@@ -214,6 +288,10 @@ def start():
     print(f"Pubkey: {PUBLIC_KEY}")
     print(f"Relay:  {RELAY}")
     print(f"Allowed senders: {len(ALLOWED_PUBKEYS)}")
+
+    contacts = load_contacts()
+    print(f"Contacts loaded: {len(contacts)} entries")
+
     ws = websocket.WebSocketApp(
         RELAY,
         on_open=on_open,

@@ -20,6 +20,9 @@ relay_manager.add_relay("wss://nip17.com")
 relay_manager.add_relay("wss://relay.nostr.band")
 relay_manager.add_relay("wss://auth.nostr1.com")
 
+# Local strfry relay
+relay_manager.add_relay("ws://127.0.0.1:7777")
+
 relay_manager.open_connections()
 
 # allow connections to establish
@@ -27,7 +30,7 @@ time.sleep(2)
 
 
 def send_note(text):
-
+    """Publish a kind 1 note (public post)."""
     event = Event(
         kind=1,
         content=text,
@@ -43,8 +46,27 @@ def send_note(text):
     print("NOTE SENT:", text)
 
 
-def send_dm(recipient_pubkey, text):
+def send_note_tagged(text, tagged_pubkey):
+    """Publish a kind 1 note with a p-tag mentioning someone."""
+    event = Event(
+        kind=1,
+        content=text,
+        public_key=PUBLIC_KEY
+    )
 
+    event.tags.append(["p", tagged_pubkey])
+
+    PRIVATE_KEY.sign_event(event)
+
+    relay_manager.publish_event(event)
+
+    time.sleep(2)
+
+    print(f"NOTE SENT (tagged {tagged_pubkey[:16]}...):", text)
+
+
+def send_dm(recipient_pubkey, text):
+    """Send a NIP-04 encrypted DM (kind 4)."""
     dm = EncryptedDirectMessage(
         recipient_pubkey=recipient_pubkey,
         cleartext_content=text
