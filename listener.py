@@ -4,6 +4,8 @@ import websocket
 import time
 import sqlite3
 import uuid
+import threading
+import queue
 from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
 from nostr.publisher import send_dm, send_note, send_note_tagged
@@ -11,6 +13,16 @@ from pynostr.encrypted_dm import EncryptedDirectMessage
 from nostr.nip44 import get_conversation_key, decrypt as nip44_decrypt
 
 RELAY = "ws://127.0.0.1:7777"
+
+# Reconnect delay after WebSocket drops (seconds)
+RECONNECT_DELAY = 5
+
+# NIP-17 subscription window: 2 days back (covers randomized timestamps)
+NIP17_SINCE_WINDOW = 172800
+
+# Deduplication DB prune interval and max age
+PRUNE_INTERVAL = 3600       # check every hour
+PRUNE_MAX_AGE_DAYS = 7      # delete records older than 7 days
 
 # Allowed senders — only these pubkeys can command Gerald.
 # Must match the whitelist in strfry policy.py.
@@ -22,28 +34,83 @@ ALLOWED_PUBKEYS = {
 # Path to the contacts JSON file (populated by fetch_contacts.py)
 CONTACTS_FILE = "contacts.json"
 
+
 # -------------------
 # Seen events storage
 # -------------------
 
-conn = sqlite3.connect("seen_events.db")
-cur = conn.cursor()
+def get_db():
+    """Get a thread-local SQLite connection."""
+    conn = sqlite3.connect("seen_events.db")
+    cur = conn.cursor()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS seen (
+        id TEXT PRIMARY KEY,
+        ts INTEGER DEFAULT (strftime('%s','now'))
+    )
+    """)
+    conn.commit()
+    return conn, cur
 
-cur.execute("""
-CREATE TABLE IF NOT EXISTS seen (
-    id TEXT PRIMARY KEY
-)
-""")
 
-conn.commit()
+# Main thread DB connection
+conn, cur = get_db()
+
 
 def already_seen(event_id):
     cur.execute("SELECT 1 FROM seen WHERE id=?", (event_id,))
     return cur.fetchone() is not None
 
+
 def mark_seen(event_id):
-    cur.execute("INSERT OR IGNORE INTO seen VALUES (?)", (event_id,))
+    cur.execute("INSERT OR IGNORE INTO seen(id) VALUES (?)", (event_id,))
     conn.commit()
+
+
+def prune_seen_events():
+    """Delete seen records older than PRUNE_MAX_AGE_DAYS."""
+    cutoff = int(time.time()) - (PRUNE_MAX_AGE_DAYS * 86400)
+    cur.execute("DELETE FROM seen WHERE ts < ?", (cutoff,))
+    deleted = cur.rowcount
+    conn.commit()
+    if deleted > 0:
+        print(f"PRUNE: deleted {deleted} old seen_events records")
+
+
+def prune_loop():
+    """Background thread that periodically prunes the seen_events DB."""
+    while True:
+        time.sleep(PRUNE_INTERVAL)
+        try:
+            prune_seen_events()
+        except Exception as e:
+            print(f"PRUNE error: {e}")
+
+
+# -------------------
+# Command queue (decouples listener from LLM)
+# -------------------
+
+command_queue = queue.Queue()
+
+
+def command_worker():
+    """
+    Background worker that processes commands from the queue.
+    This isolates the LLM call from the WebSocket receive loop.
+    """
+    # Worker needs its own DB connection for thread safety
+    w_conn, w_cur = get_db()
+
+    while True:
+        try:
+            sender_pubkey, plaintext = command_queue.get()
+            print(f"WORKER: processing command from {sender_pubkey[:16]}...")
+            process_command(sender_pubkey, plaintext)
+        except Exception as e:
+            print(f"WORKER error: {e}")
+        finally:
+            command_queue.task_done()
 
 
 # -------------------
@@ -128,9 +195,14 @@ def unwrap_gift_wrap(event):
 
 def on_open(ws):
     print("Connected to relay")
-    since = int(time.time())
 
-    # Subscription 1: NIP-04 legacy DMs (kind 4) — use since filter
+    # NIP-04 DMs: use current timestamp as since
+    since_dm = int(time.time())
+
+    # NIP-17 gift wraps: use 2-day window (covers randomized timestamps)
+    since_gw = int(time.time()) - NIP17_SINCE_WINDOW
+
+    # Subscription 1: NIP-04 legacy DMs (kind 4)
     sub_id_dm = f"gerald-dm-{uuid.uuid4().hex[:8]}"
     req_dm = [
         "REQ",
@@ -138,37 +210,71 @@ def on_open(ws):
         {
             "kinds": [4],
             "#p": [PUBLIC_KEY],
-            "since": since
+            "since": since_dm
         }
     ]
     ws.send(json.dumps(req_dm))
-    print(f"NIP-04 subscription sent: {sub_id_dm}")
+    print(f"NIP-04 subscription sent: {sub_id_dm} (since={since_dm})")
 
-    # Subscription 2: NIP-17 gift wraps (kind 1059) — NO since filter
-    # because gift wrap created_at is randomized up to 2 days in the past.
-    # Deduplication is handled by seen_events.db.
+    # Subscription 2: NIP-17 gift wraps (kind 1059) with bounded window
     sub_id_gw = f"gerald-gw-{uuid.uuid4().hex[:8]}"
     req_gw = [
         "REQ",
         sub_id_gw,
         {
             "kinds": [1059],
-            "#p": [PUBLIC_KEY]
+            "#p": [PUBLIC_KEY],
+            "since": since_gw
         }
     ]
     ws.send(json.dumps(req_gw))
-    print(f"NIP-17 subscription sent: {sub_id_gw}")
+    print(f"NIP-17 subscription sent: {sub_id_gw} (since={since_gw})")
 
 
 def on_message(ws, message):
     try:
         data = json.loads(message)
     except json.JSONDecodeError:
-        print("Invalid JSON from relay:", message[:200])
+        print(f"RELAY RAW (invalid JSON): {message[:200]}")
         return
 
-    # Only process EVENT messages
-    if not isinstance(data, list) or len(data) < 3 or data[0] != "EVENT":
+    if not isinstance(data, list) or len(data) < 2:
+        print(f"RELAY RAW: {message[:200]}")
+        return
+
+    msg_type = data[0]
+
+    # --- Log all non-EVENT relay messages for debug visibility ---
+    if msg_type == "EOSE":
+        sub_id = data[1] if len(data) > 1 else "?"
+        print(f"RELAY EOSE: subscription {sub_id} — initial scan complete")
+        return
+
+    if msg_type == "NOTICE":
+        notice_text = data[1] if len(data) > 1 else ""
+        print(f"RELAY NOTICE: {notice_text}")
+        return
+
+    if msg_type == "CLOSED":
+        sub_id = data[1] if len(data) > 1 else "?"
+        reason = data[2] if len(data) > 2 else ""
+        print(f"RELAY CLOSED: subscription {sub_id} reason={reason}")
+        return
+
+    if msg_type == "OK":
+        event_id = data[1] if len(data) > 1 else "?"
+        accepted = data[2] if len(data) > 2 else "?"
+        reason = data[3] if len(data) > 3 else ""
+        print(f"RELAY OK: event {event_id[:16]}... accepted={accepted} {reason}")
+        return
+
+    if msg_type != "EVENT":
+        print(f"RELAY {msg_type}: {message[:200]}")
+        return
+
+    # --- Process EVENT messages ---
+    if len(data) < 3:
+        print(f"RELAY EVENT: malformed (len={len(data)})")
         return
 
     event = data[2]
@@ -194,6 +300,14 @@ def on_message(ws, message):
         print(f"Ignoring unexpected kind {kind}")
 
 
+def on_error(ws, error):
+    print(f"WS ERROR: {error}")
+
+
+def on_close(ws, close_status_code, close_msg):
+    print(f"WS CLOSED: status={close_status_code} msg={close_msg}")
+
+
 def handle_nip04(event):
     """Handle a legacy NIP-04 encrypted DM (kind 4)."""
     sender = event["pubkey"]
@@ -207,7 +321,8 @@ def handle_nip04(event):
         dm = EncryptedDirectMessage.from_event_dict(event)
         plaintext = dm.decrypt(PRIVATE_KEY)
         print(f"DM from {sender[:16]}...: {plaintext}")
-        process_command(sender, plaintext)
+        # Enqueue instead of blocking
+        command_queue.put((sender, plaintext))
     except Exception as e:
         print(f"NIP-04 decrypt failed: {e}")
 
@@ -224,7 +339,8 @@ def handle_nip17(event):
             return
 
         print(f"DM from {sender[:16]}...: {plaintext}")
-        process_command(sender, plaintext)
+        # Enqueue instead of blocking
+        command_queue.put((sender, plaintext))
     except Exception as e:
         print(f"NIP-17 unwrap failed: {e}")
 
@@ -292,19 +408,31 @@ def start():
     contacts = load_contacts()
     print(f"Contacts loaded: {len(contacts)} entries")
 
-    ws = websocket.WebSocketApp(
-        RELAY,
-        on_open=on_open,
-        on_message=on_message,
-    )
-    while True:
-            try:
-                ws.run_forever(ping_interval=30, ping_timeout=10)
-            except Exception as e:
-                 print("Listener crashed:", e)
+    # Start background command worker (isolates LLM from WS loop)
+    worker = threading.Thread(target=command_worker, daemon=True)
+    worker.start()
+    print("Command worker started")
 
-    print("Reconnecting in 5 seconds...")
-    time.sleep(5)
+    # Start background prune thread
+    pruner = threading.Thread(target=prune_loop, daemon=True)
+    pruner.start()
+    print("DB prune thread started")
+
+    # --- Reconnect loop ---
+    while True:
+        ws = websocket.WebSocketApp(
+            RELAY,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close,
+        )
+        print(f"Connecting to {RELAY}...")
+        ws.run_forever(ping_interval=30, ping_timeout=10)
+
+        # If we reach here, the WebSocket has disconnected
+        print(f"WebSocket disconnected. Reconnecting in {RECONNECT_DELAY}s...")
+        time.sleep(RECONNECT_DELAY)
 
 
 if __name__ == "__main__":

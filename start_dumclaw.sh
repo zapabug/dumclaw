@@ -11,9 +11,6 @@ PUBKEY="a706b9fc4cf02962e8760b6a9609c749d226a643529b31bb198b95cca6a5bee9"
 echo "Dumclaw dir: $DUMCLAW_DIR"
 echo "Strfry dir: $STRFRY_DIR"
 
-# Create logs
-#mkdir -p $DUMCLAW_DIR/logs
-
 ################################
 # Start Ollama
 ################################
@@ -37,7 +34,7 @@ echo "Python in use:"
 which python
 
 ################################
-# Start strfry relay
+# 1. Start strfry relay (must be first — everything depends on it)
 ################################
 
 echo "Starting strfry relay..."
@@ -49,7 +46,7 @@ cd $STRFRY_DIR || exit
 sleep 3
 
 ################################
-# Start strfry monitor
+# 2. Start strfry monitor (observability — see events entering relay)
 ################################
 
 echo "Starting strfry monitor..."
@@ -59,36 +56,9 @@ cd $STRFRY_DIR || exit
 ./strfry monitor \
 > $DUMCLAW_DIR/logs/strfry_monitor.log 2>&1 &
 
-
 ################################
-# Start Gerald listener
-################################
-
-echo "Starting Gerald listener..."
-
-cd $DUMCLAW_DIR || exit
-
-python3 -u listener.py > logs/listener.log 2>&1 &
-
-
-################################
-# Start Gerald server
-################################
-
-echo "Starting Gerald server..."
-
-python server.py \
-> logs/server.log 2>&1 &
-
-echo ""
-echo "================================"
-echo "Dumclaw started"
-echo "Logs in:"
-echo "$DUMCLAW_DIR/logs"
-echo "================================"
-
-################################
-# Start relay sync workers
+# 3. Start relay sync workers (must run before listener so events
+#    are already flowing into the local relay when listener connects)
 ################################
 
 echo "Starting relay sync workers..."
@@ -113,5 +83,39 @@ cd $STRFRY_DIR || exit
 
 sleep 3
 
-wait
+################################
+# 4. Start Gerald listener (after sync workers are connected)
+################################
 
+echo "Starting Gerald listener..."
+
+cd $DUMCLAW_DIR || exit
+
+python3 -u listener.py > logs/listener.log 2>&1 &
+
+
+################################
+# 5. Start Gerald server (web UI / API)
+################################
+
+echo "Starting Gerald server..."
+
+python server.py \
+> logs/server.log 2>&1 &
+
+echo ""
+echo "================================"
+echo "Dumclaw started"
+echo "================================"
+echo ""
+echo "Start order:"
+echo "  1. strfry relay"
+echo "  2. strfry monitor"
+echo "  3. sync workers (damus, primal, nos, nip17)"
+echo "  4. Gerald listener"
+echo "  5. Gerald server"
+echo ""
+echo "Logs in: $DUMCLAW_DIR/logs"
+echo "================================"
+
+wait

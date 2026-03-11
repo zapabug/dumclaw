@@ -230,6 +230,97 @@ Tools perform predictable operations independent of the model.
 
 These boundaries reduce the risk of prompt injection or unintended actions.
 
+### Whitelist Synchronization
+
+The allowed-sender whitelist exists in two places:
+
+* `listener.py` — `ALLOWED_PUBKEYS` set (controls which decrypted messages are processed)
+* `strfry/policy.py` — `ALLOWED_PUBKEYS` set (controls which events the relay accepts)
+
+These **must be kept in sync**. If they diverge:
+
+* Relay accepts an event but listener ignores it (wasted ingestion)
+* Relay rejects an event that listener would have processed (silent message loss)
+
+Note: NIP-17 gift wraps (kind 1059) use ephemeral sender keys, so the relay policy
+allows them through based on the `#p` tag (addressed to Gerald). Sender authentication
+for gift wraps happens inside the listener after decryption.
+
+### Bot Identity Separation
+
+The relay identity (`self` in strfry.conf) and the bot identity (Gerald's keypair)
+currently share the same pubkey (`a706...`). This is functional but means the relay
+and the bot are indistinguishable in the Nostr ecosystem.
+
+For production deployments, consider:
+
+* Generating a separate keypair for the relay's NIP-11 `self` field
+* Keeping the bot's keypair exclusively for signing events and decrypting DMs
+* This prevents relay metadata queries from being confused with bot identity
+
+---
+
+# Runtime Pipeline
+
+The stable 3-part bot operates as:
+
+```text
+Public relays (damus, primal, nos, nip17)
+      │
+strfry sync workers (negentropy)
+      │
+strfry relay (local LMDB + event bus)
+      │
+strfry monitor (observability log)
+      │
+listener.py
+  ├── decrypt / verify
+  └── enqueue
+      │
+command queue (thread-safe)
+      │
+command worker
+      │
+LLM (Ollama)
+      │
+publisher.py
+      │
+public relays (outbound)
+```
+
+### Start Order
+
+Components must start in this order:
+
+1. **strfry relay** — local event store must be running first
+2. **strfry monitor** — observability (optional but recommended)
+3. **sync workers** — begin pulling events from public relays into local DB
+4. **listener** — subscribes to local relay WebSocket
+5. **server** — web UI / API
+
+If the listener starts before sync workers, events arriving during the gap
+may be missed until the next reconnect cycle.
+
+### Observability
+
+Each pipeline stage produces independent logs:
+
+| Component | Log file | What it shows |
+|-----------|----------|---------------|
+| strfry relay | `logs/strfry_relay.log` | Relay startup, connections, errors |
+| strfry monitor | `logs/strfry_monitor.log` | Every event entering the relay |
+| sync workers | `logs/sync_*.log` | Negentropy sync status per relay |
+| listener | `logs/listener.log` | WS lifecycle, relay messages (EOSE/NOTICE/CLOSED), event processing |
+| server | `logs/server.log` | Web API requests |
+| ollama | `logs/ollama.log` | LLM inference |
+
+To diagnose "bot not responding", check in order:
+
+1. `sync_*.log` — are events arriving from public relays?
+2. `strfry_monitor.log` — did the event enter the local relay?
+3. `listener.log` — did the listener receive and process the event?
+4. `ollama.log` — did the LLM respond?
+
 ---
 
 # Extensibility
