@@ -48,6 +48,17 @@ cd $STRFRY_DIR || exit
 
 sleep 3
 
+################################
+# Start strfry monitor
+################################
+
+echo "Starting strfry monitor..."
+
+cd $STRFRY_DIR || exit
+
+./strfry monitor \
+> $DUMCLAW_DIR/logs/strfry_monitor.log 2>&1 &
+
 
 ################################
 # Start Gerald listener
