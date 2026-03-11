@@ -1,0 +1,47 @@
+Running filtering (policies, whitelists, spam rejection, kind restrictions, etc.) at the **relay level** (e.g., using strfry's policy system) instead of doing it only in your client (Gerald / listener.py) gives several meaningful advantages, especially in your setup where you're protecting a sensitive bot (only 2 allowed npubs, DM focus, prompt-injection defense).
+
+Here are the main benefits, ordered roughly from most impactful in your case to nice-to-have:
+
+1. **Stronger security — filtering cannot be bypassed**  
+   - Relay-level policy rejects bad events **before** they ever reach your client.  
+   - A malicious actor (or bug in your code) can't trick Gerald into processing unauthorized DMs, because strfry never stores or forwards them.  
+   - Client-side filtering (e.g., your `if sender not in ALLOWED_PUBKEYS` check) happens *after* decryption and receipt — an attacker could still flood your WebSocket with junk, force unnecessary CPU usage (decryption attempts), or exploit a future bug in your unwrap / queue logic.  
+   → Relay policy = defense in depth. Your bot stays "air-gapped" from spam / attacks.
+
+2. **Much lower resource usage on the client machine**  
+   - Your old hardware only receives/stores/processes events from the 2 whitelisted pubkeys.  
+   - No bandwidth wasted on spam, scams, global junk, or even legitimate but irrelevant events (kind 1 notes, zaps, long-form posts, etc.).  
+   - strfry drops everything at ingress → your listener.py sees a tiny trickle instead of a firehose.  
+   - Especially valuable when running 24/7 on low-power/old hardware: less disk I/O (LMDB stays small), less RAM, lower CPU for JSON parsing / dedup / decryption.
+
+3. **No storage bloat in your local DB / cache**  
+   - strfry only keeps what the policy allows → your `seen_events.db` and any future local caching stay clean and tiny forever.  
+   - Client-only filtering means you'd still store (or at least temporarily buffer) everything that arrives, then discard most of it — wasteful over weeks/months.
+
+4. **Better real-time performance & lower latency for allowed events**  
+   - Fewer events overall = faster WebSocket handling, quicker EOSE, less backlog.  
+   - strfry can pre-index / optimize allowed patterns (e.g. BTree structures for common filters like your `#p` + kinds 4/1059), so queries and streaming feel snappier.
+
+5. **Easier central management & consistency**  
+   - One place (strfry policy script) to update rules → all clients/bots using that relay automatically inherit the protection.  
+   - No risk of different clients having slightly different whitelists or bugs in client-side code.  
+   - If you ever add more bots/tools on the same machine/network, they benefit without duplicating logic.
+
+6. **Spam/abuse resistance without client complexity**  
+   - You don't need to implement rate-limiting, kind blacklists, content keyword filters, or NIP-05 checks in Python — strfry can do it (or call external plugins/scripts).  
+   - Harder for coordinated spam to DoS your bot, since junk never reaches the WS connection.
+
+### Trade-offs (why not everyone does relay filtering)
+- **Less flexibility for per-client preferences** — relay policy is global to that relay. If you wanted different rules for different bots, you'd need separate relays (or complex policy logic).  
+- **Slightly more setup/maintenance** — writing/debugging policy scripts in JS/Lua/etc. vs simple `if` statements in your code.  
+- **If the relay is public**, aggressive filtering can annoy other users (but in your case it's private/local → no issue).
+
+### Bottom line for your Gerald/OpenClaw-like bot
+Relay-level filtering (what you're already doing with strfry + policy) is **significantly superior** for your use-case:  
+- Maximum protection against prompt injection / unauthorized commands  
+- Minimal load on old hardware  
+- Clean, focused stream of only the DMs you care about  
+
+Client-side filtering alone would work, but it's strictly weaker and more wasteful. Keeping the strfry policy as the primary gate + your `ALLOWED_PUBKEYS` double-check as belt-and-suspenders is an excellent, paranoid design.
+
+If you're still having streaming issues despite this, it's almost certainly unrelated to the filtering — more likely the `strfry stream` / router bypasses WS broadcasts (as discussed before). Switching Gerald to a public relay (or fixing the local broadcast bridge) will make new DMs flow in real time while preserving all these relay-filtering wins.

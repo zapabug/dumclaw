@@ -71,8 +71,8 @@ def send_dm(recipient_pubkey, text):
     # Step 2 — seal (kind 13)
     # ------------------------
 
-    conv_key = get_conversation_key(PRIVATE_KEY.hex(), recipient_pubkey)
-
+    conv_key = get_conversation_key(PRIVATE_KEY, recipient_pubkey)
+    
     encrypted_rumor = nip44_encrypt(rumor_json, conv_key)
 
     seal_event = Event(
