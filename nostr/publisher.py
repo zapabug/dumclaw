@@ -17,7 +17,7 @@ def send_note(text):
     event = Event(
         kind=1,
         content=text,
-        public_key=PUBLIC_KEY
+        pubkey=PUBLIC_KEY
     )
 
     event.sign(PRIVATE_KEY.hex())
@@ -34,7 +34,7 @@ def send_note_tagged(text, tagged_pubkey):
     event = Event(
         kind=1,
         content=text,
-        public_key=PUBLIC_KEY
+        pubkey=PUBLIC_KEY
     )
 
     event.tags.append(["p", tagged_pubkey])
@@ -42,6 +42,8 @@ def send_note_tagged(text, tagged_pubkey):
     event.sign(PRIVATE_KEY.hex())
 
     relay_manager.publish_event(event)
+
+    relay_manager.run_sync()
 
     print("NOTE SENT (tagged):", text)
 
@@ -72,13 +74,13 @@ def send_dm(recipient_pubkey, text):
     # ------------------------
 
     conv_key = get_conversation_key(PRIVATE_KEY, recipient_pubkey)
-    
+
     encrypted_rumor = nip44_encrypt(rumor_json, conv_key)
 
     seal_event = Event(
         kind=13,
         content=encrypted_rumor,
-        public_key=PUBLIC_KEY
+        pubkey=PUBLIC_KEY
     )
 
     seal_event.sign(PRIVATE_KEY.hex())
@@ -91,14 +93,14 @@ def send_dm(recipient_pubkey, text):
 
     ephemeral = PrivateKey()
 
-    wrap_key = get_conversation_key(ephemeral.hex(), recipient_pubkey)
+    wrap_key = get_conversation_key(ephemeral, recipient_pubkey)
 
     encrypted_seal = nip44_encrypt(seal_json, wrap_key)
 
     gift = Event(
         kind=1059,
         content=encrypted_seal,
-        public_key=ephemeral.public_key.hex()
+        pubkey=ephemeral.public_key.hex()
     )
 
     gift.tags.append(["p", recipient_pubkey])
@@ -110,5 +112,7 @@ def send_dm(recipient_pubkey, text):
     # ------------------------
 
     relay_manager.publish_event(gift)
+    
+    relay_manager.run_sync()
 
     print("NIP17 DM SENT →", recipient_pubkey)
