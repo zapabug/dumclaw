@@ -59,11 +59,31 @@ cd $DUMCLAW_DIR || exit
 
 python3 -u listener.py > logs/listener.log 2>&1 &
 
+
+################################
+# Start Gerald server
+################################
+
+echo "Starting Gerald server..."
+
+python server.py \
+> logs/server.log 2>&1 &
+
+echo ""
+echo "================================"
+echo "Dumclaw started"
+echo "Logs in:"
+echo "$DUMCLAW_DIR/logs"
+echo "================================"
+
+wait
+
 ################################
 # Start relay sync workers
 ################################
 
 echo "Starting relay sync workers..."
+cd $STRFRY_DIR || exit
 
 ./strfry sync wss://relay.damus.io \
 --filter "{\"kinds\":[4,1059],\"#p\":[\"$PUBKEY\"]}" \
@@ -83,21 +103,3 @@ echo "Starting relay sync workers..."
 
 sleep 3
 
-
-################################
-# Start Gerald server
-################################
-
-echo "Starting Gerald server..."
-
-python server.py \
-> logs/server.log 2>&1 &
-
-echo ""
-echo "================================"
-echo "Dumclaw started"
-echo "Logs in:"
-echo "$DUMCLAW_DIR/logs"
-echo "================================"
-
-wait
