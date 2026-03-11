@@ -20,7 +20,7 @@ assert conv_key.hex() == expected_conv_key, "Conversation key mismatch!"
 print("✓ Conversation key matches")
 
 # Test decrypt with known payload
-payload = "AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABee0G5VSK0/9YypIObAtDKfYEAjD35uVkHyB0F4DwrcNaCXlCWZKaArsGrY6M9wnuTMxWfp1RTN9Xga8no+kF5Vsb"
+payload = "AgBee0G5VSK0/9YypIObAtDKfYEAjD35uVkHyB0F4DwrcNaCXlCWZKaArsGrY6M9wnuTMxWfp1RTN9Xga8no+kF5Vsb"
 plaintext = decrypt(payload, conv_key)
 print(f"Decrypted: {repr(plaintext)}")
 assert plaintext == "a", f"Decryption mismatch: got {repr(plaintext)}"
