@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Quick smoke test for nip44.py using the official NIP-44 test vector."""
 
-from nip44 import get_conversation_key, decrypt
+from nostr.nip44 import get_conversation_key, decrypt
 from pynostr.key import PrivateKey
 
 # NIP-44 test vector from the spec

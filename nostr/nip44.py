@@ -175,3 +175,39 @@ def decrypt(payload: str, conversation_key: bytes) -> str:
     # Decrypt
     padded = _chacha20(chacha_key, chacha_nonce, ciphertext)
     return _unpad(padded)
+
+import os
+import base64
+
+
+def _pad(plaintext: str) -> bytes:
+    data = plaintext.encode("utf-8")
+    unpadded_len = len(data)
+
+    padded_len = _calc_padded_len(unpadded_len)
+
+    padded = struct.pack(">H", unpadded_len) + data
+    padded += b"\x00" * (padded_len - unpadded_len)
+
+    return padded
+
+
+def encrypt(plaintext: str, conversation_key: bytes) -> str:
+    """
+    Encrypt plaintext using NIP-44 v2.
+    Returns base64 payload ready for Nostr event content.
+    """
+
+    nonce = os.urandom(32)
+
+    chacha_key, chacha_nonce, hmac_key = get_message_keys(conversation_key, nonce)
+
+    padded = _pad(plaintext)
+
+    ciphertext = _chacha20(chacha_key, chacha_nonce, padded)
+
+    mac = hmac_aad(hmac_key, ciphertext, nonce)
+
+    payload = b"\x02" + nonce + ciphertext + mac
+
+    return base64.b64encode(payload).decode()

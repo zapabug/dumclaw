@@ -8,7 +8,7 @@ from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
 from nostr.publisher import send_dm, send_note, send_note_tagged
 from pynostr.encrypted_dm import EncryptedDirectMessage
-from nip44 import get_conversation_key, decrypt as nip44_decrypt
+from nostr.nip44 import get_conversation_key, decrypt as nip44_decrypt
 
 RELAY = "ws://127.0.0.1:7777"
 

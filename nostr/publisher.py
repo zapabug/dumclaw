@@ -1,10 +1,13 @@
+import json
 import time
 
 from config import PRIVATE_KEY, PUBLIC_KEY
 from nostr.relay import get_relay_manager
 
 from pynostr.event import Event
-from pynostr.encrypted_dm import EncryptedDirectMessage
+from pynostr.key import PrivateKey
+
+from nostr.nip44 import get_conversation_key, encrypt as nip44_encrypt
 
 
 def send_note(text):
@@ -17,7 +20,7 @@ def send_note(text):
         public_key=PUBLIC_KEY
     )
 
-    PRIVATE_KEY.sign_event(event)
+    event.sign(PRIVATE_KEY.hex())
 
     relay_manager.publish_event(event)
 
@@ -36,7 +39,7 @@ def send_note_tagged(text, tagged_pubkey):
 
     event.tags.append(["p", tagged_pubkey])
 
-    PRIVATE_KEY.sign_event(event)
+    event.sign(PRIVATE_KEY.hex())
 
     relay_manager.publish_event(event)
 
@@ -44,18 +47,68 @@ def send_note_tagged(text, tagged_pubkey):
 
 
 def send_dm(recipient_pubkey, text):
+    """
+    Send NIP-17 DM (gift wrap → seal → rumor)
+    """
 
     relay_manager = get_relay_manager()
 
-    dm = EncryptedDirectMessage(
-        recipient_pubkey=recipient_pubkey,
-        cleartext_content=text
+    # ------------------------
+    # Step 1 — rumor (kind 14)
+    # ------------------------
+
+    rumor = {
+        "kind": 14,
+        "pubkey": PUBLIC_KEY,
+        "created_at": int(time.time()),
+        "tags": [["p", recipient_pubkey]],
+        "content": text
+    }
+
+    rumor_json = json.dumps(rumor)
+
+    # ------------------------
+    # Step 2 — seal (kind 13)
+    # ------------------------
+
+    conv_key = get_conversation_key(PRIVATE_KEY.hex(), recipient_pubkey)
+
+    encrypted_rumor = nip44_encrypt(rumor_json, conv_key)
+
+    seal_event = Event(
+        kind=13,
+        content=encrypted_rumor,
+        public_key=PUBLIC_KEY
     )
 
-    event = dm.to_event()
+    seal_event.sign(PRIVATE_KEY.hex())
 
-    PRIVATE_KEY.sign_event(event)
+    seal_json = json.dumps(seal_event.to_dict())
 
-    relay_manager.publish_event(event)
+    # ------------------------
+    # Step 3 — gift wrap (1059)
+    # ------------------------
 
-    print("DM SENT →", recipient_pubkey)
+    ephemeral = PrivateKey()
+
+    wrap_key = get_conversation_key(ephemeral.hex(), recipient_pubkey)
+
+    encrypted_seal = nip44_encrypt(seal_json, wrap_key)
+
+    gift = Event(
+        kind=1059,
+        content=encrypted_seal,
+        public_key=ephemeral.public_key.hex()
+    )
+
+    gift.tags.append(["p", recipient_pubkey])
+
+    gift.sign(ephemeral.hex())
+
+    # ------------------------
+    # publish
+    # ------------------------
+
+    relay_manager.publish_event(gift)
+
+    print("NIP17 DM SENT →", recipient_pubkey)
