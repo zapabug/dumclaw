@@ -6,7 +6,7 @@ import sqlite3
 import uuid
 from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
-from nostr_client import send_dm, send_note, send_note_tagged
+from nostr.publisher import send_dm, send_note, send_note_tagged
 from pynostr.encrypted_dm import EncryptedDirectMessage
 from nip44 import get_conversation_key, decrypt as nip44_decrypt
 
@@ -297,7 +297,14 @@ def start():
         on_open=on_open,
         on_message=on_message,
     )
-    ws.run_forever()
+    while True:
+            try:
+                ws.run_forever(ping_interval=30, ping_timeout=10)
+            except Exception as e:
+                 print("Listener crashed:", e)
+
+    print("Reconnecting in 5 seconds...")
+    time.sleep(5)
 
 
 if __name__ == "__main__":

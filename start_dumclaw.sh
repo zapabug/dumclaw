@@ -12,7 +12,7 @@ echo "Dumclaw dir: $DUMCLAW_DIR"
 echo "Strfry dir: $STRFRY_DIR"
 
 # Create logs
-mkdir -p $DUMCLAW_DIR/logs
+#mkdir -p $DUMCLAW_DIR/logs
 
 ################################
 # Start Ollama
@@ -76,13 +76,12 @@ echo "Logs in:"
 echo "$DUMCLAW_DIR/logs"
 echo "================================"
 
-wait
-
 ################################
 # Start relay sync workers
 ################################
 
 echo "Starting relay sync workers..."
+
 cd $STRFRY_DIR || exit
 
 ./strfry sync wss://relay.damus.io \
@@ -102,4 +101,6 @@ cd $STRFRY_DIR || exit
 > $DUMCLAW_DIR/logs/sync_nip17.log 2>&1 &
 
 sleep 3
+
+wait
 

@@ -21,7 +21,6 @@ initialized = False
 
 
 def _relay_loop():
-
     relay_manager.open_connections()
 
 
@@ -48,6 +47,9 @@ def init_relays():
 
 
 def get_relay_manager():
+
+    init_relays()
+
     return relay_manager
 
 
