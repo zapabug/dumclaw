@@ -4,7 +4,7 @@ import websocket
 import threading
 from config import PUBLIC_KEY   # ← your existing config
 
-RELAY_PUBLIC = "wss://nos.lol"          # one fast relay is enough (matches your sync workers)
+RELAY_PUBLIC = "ws://relay.snort.social"   #not syncying to avoid      
 RELAY_LOCAL  = "ws://127.0.0.1:7777"
 
 RECONNECT_DELAY = 5
@@ -51,10 +51,16 @@ def start_bridge():
     def on_message(ws, message):
         try:
             data = json.loads(message)
+
             if len(data) >= 3 and data[0] == "EVENT":
                 event = data[2]
-                if event.get("kind") in (4, 1059):
-                    forward_event(event)   # ← triggers policy + real-time broadcast
+
+            # Ignore events authored by our own pubkey
+            if event.get("pubkey") == PUBLIC_KEY:
+                return
+
+            if event.get("kind") in (4, 1059):
+                forward_event(event)   # ← triggers policy + real-time broadcast
         except:
             pass
 

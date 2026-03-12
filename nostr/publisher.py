@@ -9,6 +9,7 @@ from pynostr.key import PrivateKey
 
 from nostr.nip44 import get_conversation_key, encrypt as nip44_encrypt
 
+#relay_manager = get_relay_manager()
 
 def send_note(text):
 
@@ -43,7 +44,7 @@ def send_note_tagged(text, tagged_pubkey):
 
     relay_manager.publish_event(event)
 
-    relay_manager.run_sync()
+    #relay_manager.run_sync()
 
     print("NOTE SENT (tagged):", text)
 
@@ -113,6 +114,6 @@ def send_dm(recipient_pubkey, text):
 
     relay_manager.publish_event(gift)
     
-    relay_manager.run_sync()
+   # relay_manager.run_sync()
 
     print("NIP17 DM SENT →", recipient_pubkey)

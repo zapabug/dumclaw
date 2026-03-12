@@ -14,7 +14,7 @@ TOOL_PROMPT = """You are Gerald's brain. Read the user message and decide what a
 
 Available actions:
   reply    — just reply to the user via DM (default for conversation)
-  note     — publish a kind 1 note to nostr (public post)
+  note     — public post
   weather  — fetch the weather, then reply via DM
   dm       — send a DM to a named contact (extract the name and message)
 
