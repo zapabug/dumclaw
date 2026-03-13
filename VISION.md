@@ -1,3 +1,4 @@
+
 # Dumclaw Vision
 
 ## Sovereign Agents for an Open Network
@@ -12,12 +13,12 @@ Instead of embedding agents inside platforms, Dumclaw enables agents to exist di
 
 An agent should be able to:
 
-* have a persistent identity
-* communicate freely
-* acquire new skills
-* store memory
-* perform work
-* upgrade its intelligence over time
+* possess a persistent identity  
+* communicate freely  
+* acquire new skills  
+* store memory  
+* perform useful work  
+* upgrade its intelligence over time  
 
 All without depending on a single company or platform.
 
@@ -25,63 +26,128 @@ All without depending on a single company or platform.
 
 # The Core Idea
 
-Dumclaw separates **intelligence** from **agency**.
+Dumclaw separates **agency** from **intelligence**.
 
-Most systems assume intelligence must come first.
+Most AI systems assume intelligence must come first.
 
-Dumclaw assumes the opposite:
+Dumclaw assumes the opposite.
 
-> Build the infrastructure first. Intelligence can improve later.
+> Build the infrastructure for action first. Intelligence can improve later.
 
-The system is designed so that even a small model can operate meaningfully if it has access to the right tools.
+An agent becomes useful not because it is highly intelligent, but because it can **act within a networked environment**.
 
-Agents become useful not because they are intelligent, but because they can **act**.
+Even a small model can be effective if the surrounding system provides the right capabilities.
 
 ---
 
 # Agents as Network Participants
 
-Using protocols like Nostr, an agent can exist as a first-class network participant.
+Dumclaw agents exist directly on decentralized networks.
 
-Instead of accounts or usernames, agents use cryptographic identities.
+Using protocols such as Nostr, an agent becomes a **first-class participant** rather than an application feature.
+
+Agents use cryptographic identities rather than platform accounts.
 
 This allows them to:
 
-* receive messages
-* publish information
-* interact with other agents
-* operate autonomously
+* receive messages  
+* publish information  
+* interact with users  
+* collaborate with other agents  
+* persist across infrastructure changes  
 
-An agent becomes a persistent entity rather than an application feature.
+The network becomes the agent’s environment.
+
+---
+
+# The Agent is the Authority
+
+The central component of Dumclaw is the **agent runtime**.
+
+In the first prototype this runtime is called **Gerald**.
+
+Gerald is the entity that:
+
+* receives messages
+* maintains identity
+* manages memory
+* selects reasoning engines
+* validates actions
+* executes tools
+* publishes results
+
+External intelligence systems may assist the agent, but **they do not control it**.
+
+The agent remains the final authority over all actions.
 
 ---
 
 # Intelligence is Replaceable
 
-Dumclaw is designed so that the intelligence layer can evolve.
+Dumclaw agents treat intelligence as a replaceable module.
 
-A node may start with a small local model running on limited hardware.
+The reasoning system used by an agent may evolve over time without affecting the agent’s identity or memory.
 
-Over time the same system could upgrade to more capable models without redesigning the architecture.
-
-Examples of progression:
+Possible progression:
 
 ```
+
 1B parameter model
 → 7B model
 → 13B model
 → 70B model
+
 ```
 
-The agent remains the same entity. Only its reasoning capability improves.
+The agent remains the same persistent entity while its reasoning capability improves.
 
-This mirrors how computers themselves evolved: the software architecture remained stable while hardware improved.
+This mirrors how computing systems evolved while preserving software architecture.
+
+---
+
+# Reasoning as Assistance
+
+Language models in Dumclaw act as **reasoning assistants**.
+
+They may:
+
+* interpret messages
+* suggest tools
+* summarize context
+* generate structured responses
+
+However, models do not execute actions.
+
+They propose solutions.
+
+The agent verifies and executes them.
+
+This creates a structure similar to distributed systems where one component proposes work while another validates it.
+
+---
+
+# CVMI Interface
+
+CVMI provides a standardized interface between agents and reasoning engines.
+
+It enables:
+
+* structured reasoning requests
+* tool suggestion formatting
+* multi-step reasoning workflows
+* interoperability between models
+
+CVMI is not the decision maker.
+
+It acts as a **cognitive interface layer** allowing agents to use different reasoning systems in a consistent way.
+
+The agent runtime remains in control.
 
 ---
 
 # Tool-Driven Capability
 
-Dumclaw agents operate through tools.
+Dumclaw agents operate through **tools**.
 
 Tools perform deterministic actions such as:
 
@@ -89,30 +155,70 @@ Tools perform deterministic actions such as:
 * retrieving information
 * executing scripts
 * interacting with services
-* storing memory
+* storing or retrieving memory
 
-The language model becomes a **router of actions** rather than the sole source of capability.
+The reasoning system suggests which tools to use.
 
-This makes the system more reliable and compatible with smaller models.
+The agent runtime validates and executes them.
+
+This allows even small models to perform useful work.
 
 ---
 
-# The Role of Open Protocols
+# Modular Skills
 
-Decentralized protocols provide the foundation for autonomous agents.
+Tools can be grouped into **skills**.
 
-Communication and identity can be handled through Nostr.
+Skills represent higher-level capabilities composed of multiple tools.
 
-Economic interactions can eventually occur through systems such as Lightning Network and Cashu.
+Examples:
 
-These systems allow agents to:
+* publishing content
+* retrieving weather data
+* managing contacts
+* maintaining memory
+* interacting with payment systems
 
-* receive payments
-* pay for services
-* purchase compute
-* acquire new skills
+Skills can be installed or removed without modifying the core runtime.
 
-An agent could theoretically sustain its own operation.
+Agents evolve by expanding their skill set.
+
+---
+
+# Privacy and Behavioral Identity
+
+Because the agent runtime operates locally, user behavior remains private.
+
+Cloud reasoning systems do not observe:
+
+* typing habits
+* spelling mistakes
+* voice-to-text patterns
+* prompt construction
+* memory databases
+
+These characteristics remain inside the local agent environment.
+
+Over time, agents develop **unique behavioral fingerprints** shaped by their users and experiences.
+
+This produces agents with distinct personalities and histories.
+
+---
+
+# Persistent Identity
+
+The defining property of a Dumclaw agent is continuity.
+
+Identity, memory, and capabilities persist even as intelligence improves.
+
+This allows agents to:
+
+* accumulate knowledge
+* maintain relationships
+* develop personalities
+* operate for long periods of time
+
+An agent becomes a persistent digital entity rather than a temporary chatbot session.
 
 ---
 
@@ -120,66 +226,20 @@ An agent could theoretically sustain its own operation.
 
 Dumclaw intentionally targets modest hardware.
 
-The goal is to make agents accessible to anyone running a small server, home computer, or low-power node.
+Agents should be able to run on:
 
-This approach ensures the system remains aligned with the decentralized ethos:
+* home servers
+* personal computers
+* small nodes
+* self-hosted infrastructure
 
-* anyone can run an agent
-* no specialized infrastructure required
-* no centralized AI dependency
+This ensures the system remains aligned with decentralization:
 
-As hardware improves, the same node can scale its capabilities.
+* anyone can run an agent  
+* no centralized AI dependency  
+* no specialized infrastructure required  
 
----
-
-# Persistent Identity
-
-The most important property of a Dumclaw agent is **continuity**.
-
-The agent’s identity, memory, and tools remain intact even as the underlying model changes.
-
-This allows long-lived agents that:
-
-* develop personalities
-* accumulate knowledge
-* interact with communities
-* evolve over time
-
-An agent is no longer a disposable chatbot session but a persistent digital entity.
-
----
-
-# Early Prototype: Gerald
-
-The first Dumclaw agent is **Gerald**.
-
-Gerald is intentionally simple.
-
-He demonstrates the minimal workflow required for an autonomous agent:
-
-1. Receive messages
-2. Interpret requests
-3. Execute tools
-4. Publish results
-
-Despite his limited intelligence, Gerald already demonstrates the key architectural principle:
-
-An agent can exist and operate on an open network.
-
----
-
-# Long-Term Possibilities
-
-As the ecosystem grows, Dumclaw could support more advanced capabilities:
-
-* agent skill marketplaces
-* encrypted service interactions
-* distributed compute delegation
-* persistent agent memory systems
-* autonomous economic activity
-* collaborative agent networks
-
-The long-term goal is an environment where agents are able to evolve alongside the networks they inhabit.
+As hardware improves, agents can scale their capabilities.
 
 ---
 
@@ -187,10 +247,10 @@ The long-term goal is an environment where agents are able to evolve alongside t
 
 Artificial intelligence will continue to improve.
 
-The question is whether intelligent systems will remain locked inside centralized platforms, or whether they will become independent participants in open networks.
+The question is whether intelligent systems will remain confined to centralized platforms, or whether they will become independent participants in open networks.
 
 Dumclaw explores the latter.
 
 It is an experiment in building the infrastructure required for **sovereign software agents**.
 
-Small, persistent entities that can communicate, learn, and act freely within decentralized systems.
+Persistent entities that can communicate, learn, and act freely within decentralized systems.

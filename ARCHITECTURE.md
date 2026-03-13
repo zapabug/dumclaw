@@ -1,60 +1,68 @@
+
 # Dumclaw Architecture
 
 ## Overview
 
 Dumclaw is a lightweight runtime for autonomous agents operating on decentralized networks.
 
-The system is intentionally minimal. It separates communication, reasoning, and execution into clearly defined components.
+The system separates communication, reasoning, and execution into independent layers.
 
-The architecture allows agents to run on modest hardware while remaining compatible with larger models and expanded capabilities in the future.
+This design allows agents to operate on modest hardware while remaining compatible with larger models and expanded capabilities in the future.
+
+The agent runtime remains the authority over all actions. Intelligence systems assist the agent but do not control it.
 
 ---
 
-# System Components
+# System Layers
 
-Dumclaw consists of five core layers:
+The Dumclaw architecture consists of six primary layers:
 
-```text
-Nostr Network
-      │
-Event Intake
-      │
-Agent Loop
-      │
-Model Reasoning
-      │
-Tool Execution
-      │
-Workspace
 ```
 
-Each layer has a specific responsibility.
+Nostr Network
+│
+Event Intake
+│
+Agent Runtime (Gerald)
+│
+Reasoning Interface (CVMI)
+│
+Tool Execution
+│
+Workspace / Memory
+
+````
+
+Each layer has a clearly defined responsibility.
 
 ---
 
 # Network Layer
 
-Communication occurs over Nostr.
+Communication occurs through Nostr.
 
 Nostr provides:
 
 * decentralized identity
 * message propagation
-* event persistence through relays
+* relay-based persistence
 
-Agents use their cryptographic keypair as identity.
+Agents use cryptographic keypairs as identity.
 
-Events received from relays are filtered before entering the agent loop.
+This allows them to:
 
-This prevents arbitrary public messages from influencing the agent.
+* receive instructions
+* publish results
+* interact with users
+* interact with other agents
 
-Typical filters include:
+Events received from relays are filtered before entering the agent runtime.
 
-* whitelist of trusted public keys
-* specific event kinds
+Filters may include:
+
+* trusted public keys
+* allowed event kinds
 * rate limits
-
-This ensures the agent only reacts to trusted instructions.
 
 ---
 
@@ -64,101 +72,143 @@ Incoming events are monitored from configured relays.
 
 Relevant events include:
 
-* direct messages
+* encrypted direct messages
 * mentions
 * command requests
 
-Events are normalized into a structured internal format before being passed to the agent.
+Events are normalized into a structured internal format.
 
-Example event structure:
+Example:
 
 ```json
 {
   "sender": "pubkey",
   "type": "dm",
-  "content": "gerald post todays weather"
+  "content": "gerald post today's weather"
 }
-```
+````
 
-The intake layer ensures the agent only processes valid and authorized messages.
+Normalization ensures the reasoning system receives consistent input.
 
 ---
 
-# Agent Loop
+# Agent Runtime (Gerald)
 
-The agent loop is the central runtime process.
+The agent runtime is the core authority of the system.
 
-It performs the following cycle:
+Gerald is responsible for:
 
-```text
+* receiving normalized events
+* maintaining identity
+* maintaining memory
+* selecting reasoning engines
+* validating tool calls
+* executing tools
+* publishing results
+
+The runtime performs the main operational loop:
+
+```
 listen → interpret → decide → execute → respond
 ```
 
-1. Listen for incoming events
-2. Interpret the instruction
-3. Determine the appropriate tool
-4. Execute the tool
-5. Publish results if required
-
-The loop runs continuously and acts as the orchestrator between the network, the model, and the tools.
+Reasoning systems may suggest actions, but the runtime decides which actions are allowed.
 
 ---
 
-# Model Layer
+# Reasoning Interface (CVMI)
 
-The language model is responsible for interpreting requests and selecting appropriate actions.
+CVMI provides a standardized interface between the agent runtime and reasoning engines.
 
-The model does **not execute actions directly**.
+It allows the agent to interact with different models in a consistent way.
 
-Instead it produces structured output indicating which tool should be used.
+CVMI supports:
 
-Example model output:
+* structured reasoning requests
+* tool suggestion formatting
+* multi-step reasoning workflows
+* interoperability between reasoning systems
 
-```text
-tool: publish
-text: another morning another request for weather...
+Example reasoning request:
+
+```
+instruction: determine user intent
+input: "gerald what's the weather in denver"
+available_tools: weather_lookup, publish_note
 ```
 
-This design provides two advantages:
+Example reasoning response:
 
-* smaller models can be used effectively
-* tool execution remains deterministic
+```
+tool: weather_lookup
+location: denver
+```
 
-The model can be replaced without affecting the surrounding infrastructure.
+The agent runtime validates this suggestion before execution.
 
-Possible inference engines include:
+---
 
-* llama.cpp
-* Ollama
+# Reasoning Engines
+
+CVMI may connect to different reasoning engines.
+
+Possible engines include:
+
+* local language models
+* remote inference APIs
+* specialized reasoning systems
+
+Examples:
+
+* routstr
+* ppq
+* openai endpoints
+
+These engines provide reasoning assistance but cannot execute actions directly.
 
 ---
 
 # Tool System
 
-Tools provide the agent with real capabilities.
+Tools provide deterministic capabilities.
 
-Each tool performs a specific deterministic function.
+Each tool performs a specific operation.
 
-Example tools include:
+Examples:
 
-* publish a note
+* publish a Nostr note
 * send a direct message
+* retrieve weather data
+* query external APIs
 * write files to the workspace
-* retrieve external data
 
-Tools are implemented as modular Python functions.
-
-Example:
+Example tool implementation:
 
 ```python
-def publish(text):
+def publish_note(text):
     send_note(text)
     return "Note published."
 ```
 
-The agent selects tools based on model output.
+Tool execution is controlled and validated by the agent runtime.
 
-Execution is validated before running to prevent malformed actions.
+---
+
+# Skills
+
+Tools may be grouped into **skills**.
+
+Skills represent higher-level capabilities composed of multiple tools.
+
+Examples:
+
+* weather skill
+* contacts skill
+* publishing skill
+* memory skill
+* payment skill
+
+Skills allow the agent to expand its capabilities without modifying the core runtime.
 
 ---
 
@@ -168,7 +218,7 @@ The workspace is a persistent filesystem available to the agent.
 
 Typical directory:
 
-```text
+```
 dumclaw/workspace/
 ```
 
@@ -176,39 +226,55 @@ The workspace allows the agent to store:
 
 * generated files
 * logs
-* notes
 * scripts
-* long-term memory
+* artifacts
+* memory records
 
-This enables agents to accumulate artifacts over time.
+File operations are restricted to this directory.
 
-The workspace also acts as a boundary for file operations, preventing the agent from accessing the broader system.
+---
+
+# Memory System
+
+Memory is stored locally and associated with network identities.
+
+Example structure:
+
+```
+memory/
+  conversations.db
+```
+
+Memory may contain:
+
+* conversation history
+* summarized context
+* known contacts
+* preferences
+
+This allows agents to recognize users and maintain long-term relationships.
 
 ---
 
 # Relay Publishing
 
-When tools produce output, results can be published back to the network.
-
-Publishing occurs through Nostr events.
+When tools produce output, results may be published back to the network.
 
 Supported actions include:
 
 * public notes
-* direct messages
+* encrypted direct messages
 * status updates
 
-Events are signed with the agent’s private key before being broadcast to relays.
+Events are signed with the agent’s private key before broadcast to relays.
 
 ---
 
 # Security Model
 
-Dumclaw assumes that language models are unreliable.
+Dumclaw assumes language models are unreliable.
 
 The system therefore enforces strict boundaries.
-
-Key safeguards:
 
 ### Relay Filtering
 
@@ -216,9 +282,9 @@ Only trusted public keys can trigger agent actions.
 
 ### Tool Isolation
 
-The model cannot directly execute code.
+Models cannot execute code directly.
 
-All actions must pass through the tool layer.
+All actions must pass through the tool system.
 
 ### Workspace Sandbox
 
@@ -226,141 +292,94 @@ File operations are restricted to the workspace directory.
 
 ### Deterministic Execution
 
-Tools perform predictable operations independent of the model.
+Tools perform predictable operations independent of model behavior.
 
-These boundaries reduce the risk of prompt injection or unintended actions.
+### Gift Wrap Handling
 
-### Whitelist Synchronization
+NIP-17 gift wraps use ephemeral sender keys.
 
-The allowed-sender whitelist exists in two places:
+Relay policy allows them through based on the `#p` tag.
 
-* `listener.py` — `ALLOWED_PUBKEYS` set (controls which decrypted messages are processed)
-* `strfry/policy.py` — `ALLOWED_PUBKEYS` set (controls which events the relay accepts)
-
-These **must be kept in sync**. If they diverge:
-
-* Relay accepts an event but listener ignores it (wasted ingestion)
-* Relay rejects an event that listener would have processed (silent message loss)
-
-Note: NIP-17 gift wraps (kind 1059) use ephemeral sender keys, so the relay policy
-allows them through based on the `#p` tag (addressed to Gerald). Sender authentication
-for gift wraps happens inside the listener after decryption.
-
-### Bot Identity Separation
-
-The relay identity (`self` in strfry.conf) and the bot identity (Gerald's keypair)
-currently share the same pubkey (`a706...`). This is functional but means the relay
-and the bot are indistinguishable in the Nostr ecosystem.
-
-For production deployments, consider:
-
-* Generating a separate keypair for the relay's NIP-11 `self` field
-* Keeping the bot's keypair exclusively for signing events and decrypting DMs
-* This prevents relay metadata queries from being confused with bot identity
+Sender authentication occurs after decryption inside the listener.
 
 ---
 
 # Runtime Pipeline
 
-The stable 3-part bot operates as:
+The runtime pipeline operates as follows:
 
-```text
-Public relays (damus, primal, nos, nip17)
+```
+Public relays
       │
-strfry sync workers (negentropy)
+strfry sync workers
       │
-strfry relay (local LMDB + event bus)
-      │
-strfry monitor (observability log)
+strfry relay
       │
 listener.py
-  ├── decrypt / verify
-  └── enqueue
       │
-command queue (thread-safe)
+command queue
       │
-command worker
+agent runtime (Gerald)
       │
-LLM (Ollama)
+CVMI reasoning interface
+      │
+tool execution
       │
 publisher.py
       │
-public relays (outbound)
+public relays
 ```
 
-### Start Order
+Each stage performs a narrow, deterministic task.
 
-Components must start in this order:
+---
 
-1. **strfry relay** — local event store must be running first
-2. **strfry monitor** — observability (optional but recommended)
-3. **sync workers** — begin pulling events from public relays into local DB
-4. **listener** — subscribes to local relay WebSocket
-5. **server** — web UI / API
+# Observability
 
-If the listener starts before sync workers, events arriving during the gap
-may be missed until the next reconnect cycle.
+Each system component produces independent logs.
 
-### Observability
+| Component      | Log                   |
+| -------------- | --------------------- |
+| strfry relay   | relay lifecycle       |
+| strfry monitor | incoming events       |
+| sync workers   | relay synchronization |
+| listener       | event intake          |
+| server         | web API               |
+| model runtime  | inference             |
 
-Each pipeline stage produces independent logs:
-
-| Component | Log file | What it shows |
-|-----------|----------|---------------|
-| strfry relay | `logs/strfry_relay.log` | Relay startup, connections, errors |
-| strfry monitor | `logs/strfry_monitor.log` | Every event entering the relay |
-| sync workers | `logs/sync_*.log` | Negentropy sync status per relay |
-| listener | `logs/listener.log` | WS lifecycle, relay messages (EOSE/NOTICE/CLOSED), event processing |
-| server | `logs/server.log` | Web API requests |
-| ollama | `logs/ollama.log` | LLM inference |
-
-To diagnose "bot not responding", check in order:
-
-1. `sync_*.log` — are events arriving from public relays?
-2. `strfry_monitor.log` — did the event enter the local relay?
-3. `listener.log` — did the listener receive and process the event?
-4. `ollama.log` — did the LLM respond?
+Debugging follows the pipeline order.
 
 ---
 
 # Extensibility
 
-Dumclaw is designed to grow through tools and modules.
+Dumclaw expands through new tools and skills.
 
-New capabilities can be added without modifying the core agent loop.
-
-Examples:
+Examples of future modules:
 
 * data retrieval tools
 * payment integrations
-* encrypted communication
+* encrypted service interaction
 * distributed compute delegation
+* agent collaboration protocols
 
-The system evolves by expanding the available tools.
-
----
-
-# Future Architecture Extensions
-
-Planned architectural expansions include:
-
-* skill installation system
-* encrypted task exchange
-* agent-to-agent communication
-* payment-enabled tool execution
-* persistent memory indexing
-* remote compute delegation
-
-These features can be layered onto the existing architecture without disrupting the core system.
+Capabilities can be added without modifying the core runtime.
 
 ---
 
 # Design Philosophy
 
-Dumclaw prioritizes simplicity and resilience.
+Dumclaw prioritizes simplicity, resilience, and independence.
 
-The architecture assumes that intelligence will improve over time, but infrastructure should remain stable.
+Infrastructure should remain stable while intelligence evolves.
 
-Agents built on this system should be able to persist across hardware upgrades, model changes, and network evolution.
+Agents built on Dumclaw should persist across:
 
-The result is a framework for long-lived autonomous agents operating on open networks.
+* model upgrades
+* hardware changes
+* network evolution
+
+The goal is to support long-lived autonomous agents operating freely on open networks.
+
+```
+```

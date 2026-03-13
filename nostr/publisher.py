@@ -27,36 +27,37 @@ def publisher_loop():
     while True:
 
         try:
-
             print(f"Publisher connecting → {RELAY_PUBLIC}")
 
             publisher_ws = websocket.create_connection(RELAY_PUBLIC)
             publisher_ws.settimeout(30)
+
             publisher_connected = True
             print("Publisher connected")
 
             while True:
 
                 event = publish_queue.get()
-
                 msg = json.dumps(["EVENT", event])
 
                 try:
                     publisher_ws.send(msg)
-
                     print("EVENT SENT:", event["id"][:16])
-
                     publish_queue.task_done()
 
                 except Exception as send_error:
 
                     print("Send failed, requeueing:", send_error)
 
-                    # put event back so it isn't lost
+                    # Put event back so it isn't lost
                     publish_queue.put(event)
 
-                    raise send_error
+                    try:
+                        publisher_ws.close()
+                    except:
+                        pass
 
+                    raise send_error
 
         except Exception as e:
 
@@ -117,7 +118,7 @@ def send_note_tagged(text, tagged_pubkey):
     print("NOTE SENT (tagged):", text)
 
 
-def send_dm(recipient_pubkey, text):
+def send_dm(recipient_pubkey, text, reply_to=None):
     """
     Send NIP-17 DM (gift wrap → seal → rumor)
     """
@@ -126,14 +127,16 @@ def send_dm(recipient_pubkey, text):
     # Step 1 — rumor (kind 14)
     # ------------------------
 
+    tags = [["p", recipient_pubkey]]
+
+    if reply_to:
+        tags.append(["e", reply_to])
+
     rumor = {
         "kind": 14,
         "pubkey": PUBLIC_KEY,
         "created_at": int(time.time()),
-        "tags": [
-            ["p", recipient_pubkey],
-            ["e", reply_to_event_id]
-        ],
+        "tags": tags,
         "content": text
     }
 
