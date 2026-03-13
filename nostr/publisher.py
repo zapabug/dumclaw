@@ -12,7 +12,7 @@ from pynostr.key import PrivateKey
 
 from nostr.nip44 import get_conversation_key, encrypt as nip44_encrypt
 
-RELAY_PUBLIC = "ws://relay.snort.social"
+RELAY_PUBLIC = "wss://relay.snort.social"
 
 publish_queue = queue.Queue()
 
