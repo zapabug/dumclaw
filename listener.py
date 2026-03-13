@@ -8,7 +8,7 @@ import threading
 import queue
 from config import PRIVATE_KEY, PUBLIC_KEY
 from llm import ask_llm
-from nostr.publisher import send_dm, send_note, send_note_tagged
+from nostr.publisher import start_publisher, send_dm, send_note, send_note_tagged
 from pynostr.encrypted_dm import EncryptedDirectMessage
 from nostr.nip44 import get_conversation_key, decrypt as nip44_decrypt
 
@@ -412,6 +412,10 @@ def start():
     worker = threading.Thread(target=command_worker, daemon=True)
     worker.start()
     print("Command worker started")
+
+    # Start publisher (sends events to public relay)
+    start_publisher()
+    print("Publisher thread started")
 
     # Start background prune thread
     pruner = threading.Thread(target=prune_loop, daemon=True)

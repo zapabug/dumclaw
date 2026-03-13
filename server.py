@@ -3,9 +3,7 @@ from flask import Flask, request, jsonify, render_template
 from llm import decide_tool, gerald_reply
 from tools import get_weather
 from events import log_event, get_events
-from nostr.relay import init_relays, get_relay_status
 
-init_relays()
 
 app = Flask(__name__)
 
@@ -64,9 +62,6 @@ def status():
         "status": "running"
     })
 
-@app.route("/relays")
-def relays():
-    return jsonify(get_relay_status())
 
 
 if __name__ == "__main__":

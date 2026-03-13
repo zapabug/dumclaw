@@ -1,0 +1,7 @@
+add this to every relay
+
+while true; do
+  ./strfry sync wss://relay.damus.io --filter ...
+  echo "damus sync died — restarting"
+  sleep 5
+done &

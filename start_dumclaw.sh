@@ -1,4 +1,14 @@
 #!/bin/bash
+echo "Stopping previous Dumclaw processes..."
+
+pkill -f listener.py
+pkill -f bridge.py
+pkill -f server.py
+pkill -f "strfry sync"
+pkill -f "strfry relay"
+pkill -f ollama
+
+sleep 2
 
 echo "================================"
 echo "Starting Dumclaw..."
