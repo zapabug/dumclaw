@@ -87,13 +87,13 @@ Nostr Relays
       │
 Event Filter (Whitelist)
       │
-   Gerald Agent
+    Gerald Agent
       │
- Language Model
+  Language Model
       │
-   Tool System
+    Tool System
       │
-  Workspace
+   Workspace
 ```
 
 ### Components
@@ -193,11 +193,58 @@ The goal of the MVP is to demonstrate that a minimal autonomous agent can:
 
 The system is intentionally modular.
 
-Future contributors can expand Dumclaw by adding new tools, skills, and execution environments.
+Future contributors can expand Dumclaw by adding new tools, and execution environments.
 
 ---
-
-# License
-
-Open source.
-
+ 
+ ## Skills System
+ 
+ The skills system enables dynamic discovery and loading of modular capabilities. Skills are organized in `nostr/tools/skills` and each skill provides a `manifest.json` and `execute.py`. The central `registry.py` scans for skills and makes them available to the system.
+ 
+ ### Adding a New Skill
+ 
+ 1. Create a directory under `nostr/tools/skills`
+ 
+ 2. Add a `manifest.json` describing the skill
+ 
+ 3. Implement an `execute.py` with an `execute` function
+ 
+ 4. The registry automatically discovers the skill and makes it available
+ 
+ ### Using Skills via CVMI
+ 
+ The `cvmi.py` module provides helper functions to discover and load skills:
+ - `get_available_skills()` returns a dict of skill names to their metadata
+ - `load_skill(skill_name)` returns the execute function for a skill
+ - Skills can be invoked directly by name in the agent's decision flow
+ 
+ ### Skill Structure
+ 
+ Each skill directory should follow this pattern:
+ 
+ ``` 
+ my_skill/
+ ├── manifest.json
+ └── execute.py
+ ```
+ 
+ The `manifest.json` must contain `name`, `version`, `description`, and `entrypoint` fields. The `entrypoint` should point to the execute function.
+ 
+ ### Example
+ 
+ ```json
+ {
+   "name": "weather",
+   "version": "0.1.0",
+   "description": "Weather skill for dumclaw",
+   "entrypoint": "execute.py"
+ }
+ ```
+ 
+ The execute function signature is `def execute():` and can perform any action.
+ 
+ ---
+ 
+ # License
+ 
+ Open source.

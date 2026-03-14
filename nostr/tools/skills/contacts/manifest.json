@@ -1,0 +1,6 @@
+{
+  "name": "contacts",
+  "version": "0.1.0",
+  "description": "Contact management skill for dumclaw",
+  "entrypoint": "execute.py"
+}

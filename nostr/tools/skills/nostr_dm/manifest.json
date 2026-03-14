@@ -1,0 +1,6 @@
+{
+  "name": "nostr_dm",
+  "version": "0.1.0",
+  "description": "Direct message (DM) handling skill for dumclaw",
+  "entrypoint": "execute.py"
+}

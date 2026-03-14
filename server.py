@@ -1,12 +1,21 @@
+import time
+
 from flask import Flask, request, jsonify, render_template
 from flask_socketio import SocketIO, emit
 
 from llm import decide_tool, gerald_reply
 from tools import get_weather
-from events import log_event, get_events, get_realtime_events, get_tool_decisions
+from events import (
+    log_event,
+    get_events,
+    get_realtime_events,
+    get_tool_decisions,
+    get_recent_events
+)
+
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 
 @app.route("/")
@@ -96,4 +105,4 @@ def send_tool_decision_update(decision):
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True, debug=True)

@@ -231,7 +231,7 @@ Phase 2 (CVMI-Lite)
 ├── Refactor ask_llm() to return structured intent
 └── Wire process_command() through CVMI
 
-Phase 3 (Skill Registry)
+Phase 3 (Skill Registry) **completed**
 ├── Create nostr/tools/skills/ directory structure
 ├── Migrate weather, note, dm into skill modules
 ├── Build registry.py auto-discovery
@@ -240,7 +240,7 @@ Phase 3 (Skill Registry)
 Phase 4 (Interop)
 ├── NIP-89 handler announcement for Gerald's skills
 ├── NIP-90 DVM job request/result support
-└── Nostr-based skill discovery from trusted contacts
+└── Nostr-based skill discovery from trusted contacts, 
 
 The critical insight: Phase 1 costs almost nothing to implement but prevents the most damage. A rogue LLM output publishing an nsec or spamming notes is a real risk with a 1B model. The safeguards should go in before the skill system gets more powerful.
 

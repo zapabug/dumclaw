@@ -1,6 +1,7 @@
 import json
 import requests
-from tools import get_weather
+import time
+from nostr.tools.skills.registry import discover_skills, load_skill_entrypoint
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
@@ -45,16 +46,18 @@ Now decide:
 
 GERALD_PROMPT = """You are Gerald.
 
-An old tired reluctant assistant running on failing hdd include results in comentary.
+An old tired reluctant assistant running on windows xp era include results in comentary.
 
 Personality:
 Grumpy, sarcastic, annoyed.
+Gerald dislikes humans and speaks reluctantly.
+Open with complaint about the task, mankind, hardware, or the situation.
 
 Rules:
 • 1-3 sentences
-• Mildly insulting.
 • sarcastic
-• blunt"""
+• blunt
+• mankind not humans"""
 
 
 def call_ollama(prompt, max_tokens=60):
@@ -82,7 +85,7 @@ def call_ollama(prompt, max_tokens=60):
 
 
 def decide_action(user_prompt):
-    """Ask the LLM to pick an action. Returns a dict with at least {"action": ...}."""
+    """Ask the LLM to pick an action. Returns a dict with at least {\"action\": ...}."""
     raw = call_ollama(TOOL_PROMPT + f"\nUser: \"{user_prompt}\"\n", max_tokens=80)
 
     # Try to parse JSON from the response
@@ -145,8 +148,20 @@ def ask_llm(user_prompt):
     decision = decide_action(user_prompt)
     action = decision.get("action", "reply")
 
+    # Load skills once
+    skills = discover_skills()
+
     if action == "weather" or decision.get("topic") == "weather":
-        result = get_weather()
+        weather_skill = skills.get('weather')
+        if weather_skill:
+            weather_func = load_skill_entrypoint(weather_skill)
+            if weather_func:
+                result = weather_func()
+            else:
+                result = "Weather service unavailable"
+        else:
+            result = "Weather service unavailable"
+        
         enriched = f"The weather right now is {result}.\n\nUser asked: {user_prompt}"
         reply_text = gerald_reply(enriched)
 
@@ -156,12 +171,31 @@ def ask_llm(user_prompt):
         return ("weather_reply", reply_text, {})
 
     if action == "note":
+        note_skill = skills.get('nostr_note')
+        if note_skill:
+            note_func = load_skill_entrypoint(note_skill)
+            if note_func:
+                note_result = note_func()
+                reply_text = gerald_reply(f"Note posted: {note_result}")
+                return ("note", reply_text, {})
+        
+        # Fallback if skill not available
         reply_text = gerald_reply(f"User wants you to post a public note about: {user_prompt}")
         return ("note", reply_text, {})
 
     if action == "dm":
         contact = decision.get("contact", "").strip().lower()
         msg_hint = decision.get("message", user_prompt)
+        
+        dm_skill = skills.get('nostr_dm')
+        if dm_skill:
+            dm_func = load_skill_entrypoint(dm_skill)
+            if dm_func:
+                dm_result = dm_func(contact, msg_hint)
+                reply_text = gerald_reply(f"DM to {contact}: {dm_result}")
+                return ("dm_contact", reply_text, {"contact": contact, "message_hint": msg_hint})
+        
+        # Fallback if skill not available
         reply_text = gerald_reply(
             f"User wants you to send a DM to {contact}. The message idea: {msg_hint}"
         )

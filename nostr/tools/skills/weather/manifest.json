@@ -1,0 +1,6 @@
+{
+  "name": "weather",
+  "version": "0.1.0",
+  "description": "Weather skill for dumclaw",
+  "entrypoint": "execute.py"
+}

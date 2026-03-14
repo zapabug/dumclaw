@@ -83,7 +83,8 @@ python3 -u listener.py > logs/listener.log 2>&1 &
 # 5. Start Gerald server
 ################################
 echo "Starting Gerald server..."
-python server.py > logs/server.log 2>&1 &
+sleep 5
+python3 server.py > logs/server.log 2>&1 &
 
 echo ""
 echo "================================"

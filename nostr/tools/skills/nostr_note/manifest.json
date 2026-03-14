@@ -1,0 +1,6 @@
+{
+  "name": "nostr_note",
+  "version": "0.1.0",
+  "description": "Nostr note taking skill for dumclaw",
+  "entrypoint": "execute.py"
+}
