@@ -1,203 +1,257 @@
 <!DOCTYPE html>
 <html>
-<body style="font-family: monospace; background:#111; color:#0f0; margin:0;">
+<head>
+    <title>Dumclaw Terminal</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #111;
+            color: #0f0;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+        }
+        .terminal {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+        .input-section {
+            margin-bottom: 10px;
+        }
+        #cmd {
+            width: 400px;
+            padding: 5px;
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+        }
+        #log {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #0f0;
+            padding: 6px;
+            background: #000;
+        }
+        .log-entry {
+            border: 1px solid #0f0;
+            padding: 4px;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+        }
+        .status-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .status-box {
+            border: 1px solid #0f0;
+            padding: 6px;
+            background: #000;
+        }
+        .status-box h3 {
+            margin: 0;
+            padding: 0;
+            color: #0f0;
+        }
+        .status-content {
+            height: 150px;
+            overflow: auto;
+            margin-top: 5px;
+        }
+        .realtime-events {
+            height: 230px;
+            overflow: auto;
+            border: 1px solid #0f0;
+            padding: 6px;
+            background: #000;
+        }
+        .realtime-event {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
+        .realtime-event .time {
+            color: #0ff;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        .realtime-event .type {
+            color: #ff0;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .realtime-event .data {
+            color: #0f0;
+            font-size: 11px;
+        }
+        .tool-decision {
+            background: #002;
+            border: 1px solid #0f0;
+            padding: 4px;
+            margin-bottom: 2px;
+        }
+        .tool-decision .decision {
+            color: #ff0;
+            font-weight: bold;
+        }
+        .tool-decision .time {
+            color: #0ff;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="padding: 10px;">Dumclaw Terminal</h2>
 
-<h2 style="padding:10px;">Dumclaw Terminal</h2>
+    <div class="container">
+        <!-- TERMINAL -->
+        <div class="terminal">
+            <div class="input-section">
+                <input id="cmd" placeholder="Type message here...">
+                <button onclick="send()">Send</button>
+            </div>
+            <div id="log" class="log-section">
+                <!-- Log entries will be added here -->
+            </div>
+        </div>
 
-<div style="display:flex; gap:10px; padding:10px;">
+        <!-- STATUS COLUMN -->
+        <div class="status-column">
+            <div class="status-box">
+                <h3>Relay Status</h3>
+                <pre id="relays" class="status-content">
+                    Checking relay status...
+                </pre>
+            </div>
 
-<!-- TERMINAL -->
-<div style="flex:2; display:flex; flex-direction:column;">
+            <div class="status-box">
+                <h3>Bot Monitor</h3>
+                <div id="events" class="realtime-events">
+                    <!-- Realtime events will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div>
-<input id="cmd" style="width:400px;">
-<button onclick="send()">send</button>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const cmd = document.getElementById('cmd');
+        const log = document.getElementById('log');
+        const events = document.getElementById('events');
+        const relays = document.getElementById('relays');
 
-<div id="log" style="
-margin-top:10px;
-height:400px;
-overflow-y:auto;
-border:1px solid #0f0;
-padding:6px;
-"></div>
+        // Socket.IO connection
+        const socket = io({
+            autoConnect: true,
+            transports: ['websocket']
+        });
 
-</div>
-
-<!-- STATUS COLUMN -->
-<div style="flex:1; display:flex; flex-direction:column; gap:10px;">
-
-<div>
-<h3>Relay Status</h3>
-<pre id="relays" style="
-height:150px;
-overflow:auto;
-border:1px solid #0f0;
-padding:6px;
-"></pre>
-</div>
-
-<div>
-<h3>Bot Monitor</h3>
-<div id="events" style="
-height:230px;
-overflow:auto;
-border:1px solid #0f0;
-padding:6px;
-"></div>
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-const cmd = document.getElementById("cmd")
-const log = document.getElementById("log")
-const events = document.getElementById("events")
-const relays = document.getElementById("relays")
-
-
-/* TERMINAL OUTPUT */
-
-function addLog(text){
-
-    const box = document.createElement("div")
-
-    box.style.border = "1px solid #0f0"
-    box.style.padding = "4px"
-    box.style.marginBottom = "6px"
-    box.textContent = text
-
-    log.prepend(box)
-
-}
-
-
-/* SEND COMMAND */
-
-async function send(){
-
-    let msg = cmd.value.trim()
-    if(!msg) return
-
-    addLog("> " + msg)
-
-    try{
-
-        let r = await fetch("/chat",{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({message:msg})
-        })
-
-        let data = await r.json()
-
-        addLog(data.reply)
-
-    }catch(e){
-
-        addLog("[error] " + e)
-
-    }
-
-    cmd.value = ""
-    cmd.focus()
-
-}
-
-
-/* EVENTS MONITOR */
-
-async function updateEvents(){
-
-    try{
-
-        let r = await fetch("/events")
-        let data = await r.json()
-
-        let out = ""
-
-        if(Array.isArray(data)){
-
-            data.slice(-50).reverse().forEach(e=>{
-                out += JSON.stringify(e) + "\n"
-            })
-
-        }else{
-
-            out = JSON.stringify(data,null,2)
-
+        // Terminal output
+        function addLog(text) {
+            const box = document.createElement('div');
+            box.className = 'log-entry';
+            box.textContent = text;
+            log.prepend(box);
         }
 
-        events.textContent = out
+        // Send command
+        async function send() {
+            let msg = cmd.value.trim();
+            if (!msg) return;
 
-    }catch(e){
+            addLog('> ' + msg);
 
-        events.textContent = "event fetch error"
+            try {
+                let r = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
 
-    }
-
-}
-
-
-/* RELAY STATUS */
-
-async function updateRelays(){
-
-    try{
-
-        let r = await fetch("/relays")
-        let data = await r.json()
-
-        let out = ""
-
-        for(let k in data){
-
-            if(data[k] === "connected"){
-                out += "✔ " + k + "\n"
-            }else{
-                out += "✖ " + k + "\n"
+                let data = await r.json();
+                addLog(data.reply);
+            } catch (e) {
+                addLog('[error] ' + e.message);
             }
 
+            cmd.value = '';
+            cmd.focus();
         }
 
-        relays.textContent = out
+        // Handle realtime events from Socket.IO
+        socket.on('realtime_event', function(data) {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'realtime-event';
+            eventDiv.innerHTML = `
+                <span class="time">${data.time}</span>
+                <span class="type">${data.type}</span>
+                <span class="data">${JSON.stringify(data.data)}</span>
+            `;
+            events.prepend(eventDiv);
+        });
 
-    }catch(e){
+        // Handle tool decision events
+        socket.on('tool_decision_event', function(data) {
+            const decisionDiv = document.createElement('div');
+            decisionDiv.className = 'tool-decision';
+            decisionDiv.innerHTML = `
+                <div class="decision">Decision: ${data.decision}</div>
+                <div class="time">${data.time}</div>
+            `;
+            events.prepend(decisionDiv);
+        });
 
-        relays.textContent = "relay status error"
+        // Poll for initial data
+        async function pollData() {
+            try {
+                // Get initial events
+                let r = await fetch('/events');
+                let data = await r.json();
+                displayEvents(data);
 
-    }
+                // Get relay status
+                r = await fetch('/status');
+                data = await r.json();
+                displayStatus(data);
+            } catch (e) {
+                console.log('Initial poll error:', e);
+            }
+        }
 
-}
+        function displayEvents(events) {
+            events.slice(-20).reverse().forEach(event => {
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'realtime-event';
+                eventDiv.innerHTML = `
+                    <span class="time">${event.time}</span>
+                    <span class="type">${event.type}</span>
+                    <span class="data">${JSON.stringify(event.data)}</span>
+                `;
+                events.prepend(eventDiv);
+            });
+        }
 
+        function displayStatus(status) {
+            relays.textContent = `Bot: ${status.bot}
+Status: ${status.status}`;
+        }
 
-/* POLL SYSTEM */
+        // Event listeners
+        cmd.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                send();
+            }
+        });
 
-setInterval(()=>{
-
-    updateEvents()
-    updateRelays()
-
-},1000)
-
-
-/* ENTER TO SEND */
-
-cmd.addEventListener("keydown", function(e){
-
-    if(e.key === "Enter"){
-        send()
-    }
-
-})
-
-
-cmd.focus()
-
-</script>
-
+        // Initialize
+        pollData();
+        cmd.focus();
+    </script>
 </body>
 </html>
