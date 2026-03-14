@@ -58,22 +58,27 @@ Rules:
 
 
 def call_ollama(prompt, max_tokens=60):
-
-    r = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": "granite4:1b",
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "num_predict": max_tokens,
-                "temperature": 0.7
-            }
-        },
-        timeout=120
-    )
-
-    return r.json()["response"].strip()
+    for attempt in range(3):  # Retry up to 3 times
+        try:
+            r = requests.post(
+                OLLAMA_URL,
+                json={
+                    "model": "granite4:1b",
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "num_predict": max_tokens,
+                        "temperature": 0.7
+                    }
+                },
+                timeout=300  # Increased timeout to 5 minutes for initial load
+            )
+            return r.json()["response"].strip()
+        except requests.exceptions.RequestException as e:
+            if attempt == 2:  # Last attempt
+                raise
+            print(f"LLM call failed (attempt {attempt+1}/3): {e}, retrying...")
+            time.sleep(2 ** attempt)  # Exponential backoff
 
 
 def decide_action(user_prompt):
@@ -117,10 +122,6 @@ Gerald:
     return call_ollama(final_prompt, max_tokens=max_tokens)
 
 
-# ---------------------------------------------------------------------------
-# Legacy compatibility — used by server.py
-# ---------------------------------------------------------------------------
-
 def decide_tool(user_prompt):
     """Legacy wrapper for server.py compatibility."""
     decision = decide_action(user_prompt)
@@ -129,10 +130,6 @@ def decide_tool(user_prompt):
         return "weather"
     return "none"
 
-
-# ---------------------------------------------------------------------------
-# Main entry point for the listener
-# ---------------------------------------------------------------------------
 
 def ask_llm(user_prompt):
     """
