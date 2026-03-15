@@ -32,7 +32,7 @@ ALLOWED_PUBKEYS = {
 }
 
 # Path to the contacts JSON file (populated by fetch_contacts.py)
-CONTACTS_FILE = "contacts.json"
+CONTACTS_FILE = "nostr/tools/contacts.json"
 
 
 # -------------------
@@ -354,10 +354,10 @@ def process_command(sender_pubkey, plaintext):
     Route a decrypted message through the LLM and execute the decided action.
 
     Actions:
-      reply         — send DM back to sender
-      note          — publish kind 1 note + send "note sent" DM to sender
-      weather_reply — fetch weather, reply via DM
-      dm_contact    — send DM to a named contact + confirm to sender
+       reply         — send DM back to sender
+       note          — publish kind 1 note + send "note sent" DM to sender
+       weather_reply — fetch weather, reply via DM
+       dm_contact    — send DM to a named contact + confirm to sender
     """
     try:
         action, reply_text, extra = ask_llm(plaintext)

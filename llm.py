@@ -14,28 +14,28 @@ OLLAMA_URL = "http://localhost:11434/api/generate"
 TOOL_PROMPT = """You are Gerald's brain. Read the user message and decide what action to take.
 
 Available actions:
-  reply    — just reply to the user via DM (default for conversation)
-  note     — public post
-  weather  — fetch the weather, then reply via DM
-  dm       — send a DM to a named contact (extract the name and message)
+   reply    — just default for conversation)
+   note     — public post
+   weather  — fetch the weather, then reply via DM
+   dm       — send a DM to a named contact (extract the name and message)
 
 Reply with ONLY a JSON object. No other text.
 
 Examples:
-  User: "hey gerald how are you"
-  {"action": "reply"}
+   User: "hey gerald how are you"
+   {"action": "reply"}
 
-  User: "post a note about how tired you are"
-  {"action": "note"}
+   User: "post a note about how tired you are"
+   {"action": "note"}
 
-  User: "whats the weather"
-  {"action": "weather"}
+   User: "whats the weather"
+   {"action": "weather"}
 
-  User: "send a dm to alex saying hello"
-  {"action": "dm", "contact": "alex", "message": "hello"}
+   User: "send a dm to alex saying hello"
+   {"action": "dm", "contact": "alex", "message": "hello"}
 
-  User: "post the weather"
-  {"action": "note", "topic": "weather"}
+   User: "post the weather"
+   {"action": "note", "topic": "weather"}
 
 Now decide:
 """
@@ -175,7 +175,9 @@ def ask_llm(user_prompt):
         if note_skill:
             note_func = load_skill_entrypoint(note_skill)
             if note_func:
-                note_result = note_func()
+                # Extract note content from decision or user prompt
+                note_content = decision.get("topic", user_prompt)
+                note_result = note_func(note_content)
                 reply_text = gerald_reply(f"Note posted: {note_result}")
                 return ("note", reply_text, {})
         
